@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+jinja2
+azure-storage-blob
+httpx
+python-multipart
+azure-identity
+azure-keyvault-secrets
