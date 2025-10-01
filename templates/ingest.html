@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Ingestion</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 560px; margin: 32px auto; }
+    .row { margin: 12px 0; }
+    progress { width: 100%; }
+  </style>
+</head>
+<body>
+  <h1>Upload</h1>
+  <div class="row">
+    <label>Tenant</label>
+    <input id="tenant" value="acme-sales" />
+  </div>
+  <div class="row">
+    <input id="file" type="file" />
+  </div>
+  <div class="row"><progress id="bar" value="0" max="100"></progress></div>
+  <p id="status"></p>
+
+  <script>
+    const fileInput = document.getElementById('file');
+    const statusEl = document.getElementById('status');
+    const bar = document.getElementById('bar');
+
+    fileInput.addEventListener('change', async () => {
+      const tenant = (document.getElementById('tenant').value || '').trim();
+      const file = fileInput.files?.[0];
+      if (!tenant || !file) return;
+
+      statusEl.textContent = "Requesting SAS…";
+      const form = new FormData();
+      form.append('tenant_id', tenant);
+      form.append('filename', file.name);
+      form.append('mime', file.type || 'application/octet-stream');
+      form.append('bytes', file.size);
+
+      const sasRes = await fetch('/api/sas', { method: 'POST', body: form });
+      const { uploadUrl, blobUrl, error } = await sasRes.json();
+      if (error || !uploadUrl) { statusEl.textContent = "SAS failed"; return; }
+
+      statusEl.textContent = "Uploading to Blob…";
+      bar.value = 10;
+
+      await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'x-ms-blob-type': 'BlockBlob',
+          'Content-Type': file.type || 'application/octet-stream'
+        },
+        body: file
+      }).then(r => { if (!r.ok) throw new Error('Upload failed'); });
+
+      bar.value = 90;
+      statusEl.textContent = "Notifying n8n…";
+
+      const notify = new FormData();
+      notify.append('tenant_id', tenant);
+      notify.append('blob_url', blobUrl);
+      notify.append('mime', file.type || 'application/octet-stream');
+      notify.append('bytes', file.size);
+      notify.append('original_name', file.name);
+
+      await fetch('/api/notify', { method: 'POST', body: notify });
+      bar.value = 100;
+      statusEl.textContent = "Done ✅";
+    });
+  </script>
+</body>
+</html>
