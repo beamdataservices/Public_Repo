@@ -10,10 +10,9 @@ permissions:
   contents: read
 
 env:
-  # === Customize these to your environment ===
   RESOURCE_GROUP: BEAM-N8N
   CONTAINER_APP_NAME: ingest-api
-  ACR_NAME: beamn8nacr              # your ACR name (no domain)
+  ACR_NAME: beamn8nacr
   ACR_LOGIN_SERVER: beamn8nacr.azurecr.io
   IMAGE_TAG: ${{ github.sha }}
   IMAGE_NAME: ingest-api
@@ -34,6 +33,10 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Azure CLI - Log in to ACR for Docker
+        run: |
+          az acr login --name ${{ env.ACR_NAME }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
