@@ -49,10 +49,9 @@ async def mint_sas(
     if bytes > 50 * 1024 * 1024:
         return JSONResponse({"error": "File too large"}, status_code=400)
 
-    safe_name = filename.replace("/", "_").replace("\\", "_").strip().replace(" ", "-")
-    blob_name = f"tenant={tenant_id}/uploads/{datetime.utcnow():%Y/%m/%d}/{uuid.uuid4()}-{safe_name}"
+    safe = filename.replace("/", "_").replace("\\", "_").strip().replace(" ", "-")
+    blob_name = f"tenant={tenant_id}/uploads/{datetime.utcnow():%Y/%m/%d}/{uuid.uuid4()}-{safe}"
 
-    # mitigate clock skew + use a stable storage service version
     now = datetime.utcnow()
     sas = generate_blob_sas(
         account_name=account,
@@ -60,11 +59,11 @@ async def mint_sas(
         blob_name=blob_name,
         account_key=key,
         permission=BlobSasPermissions(create=True, write=True),
-        start=now - timedelta(minutes=5),           # allow for clock skew
-        expiry=now + timedelta(minutes=10),         # short-lived SAS
+        start=now - timedelta(minutes=5),     # tolerate clock skew
+        expiry=now + timedelta(minutes=10),
         protocol="https",
-        version="2023-11-03"                        # stable, widely supported
-        # NOTE: no content_type here for PUT SAS
+        version="2021-08-06",                # <-- pin to a safe, widely-supported version
+        # IMPORTANT: do NOT pass content_type for PUT SAS
     )
 
     blob_url = f"https://{account}.blob.core.windows.net/{container}/{blob_name}"
