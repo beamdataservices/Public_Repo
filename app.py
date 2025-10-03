@@ -38,12 +38,8 @@ async def root():
     return RedirectResponse(url="/ingest")
 
 @app.post("/api/sas")
-async def mint_sas(
-    tenant_id: str = Form(...),
-    filename: str  = Form(...),
-    mime: str      = Form("application/octet-stream"),
-    bytes: int     = Form(0)
-):
+async def mint_sas(tenant_id: str = Form(...), filename: str = Form(...),
+                   mime: str = Form("application/octet-stream"), bytes: int = Form(0)):
     account, _, container, _ = get_cfg()
     if not account:
         return JSONResponse({"error": "Storage not configured"}, status_code=500)
@@ -53,23 +49,22 @@ async def mint_sas(
     safe = filename.replace("/", "_").replace("\\", "_").strip().replace(" ", "-")
     blob_name = f"tenant={tenant_id}/uploads/{datetime.utcnow():%Y/%m/%d}/{uuid.uuid4()}-{safe}"
 
-    # Managed Identity → User Delegation SAS
-    cred = DefaultAzureCredential()  # ACA’s system-assigned MI
+    cred = DefaultAzureCredential()
     svc = BlobServiceClient(f"https://{account}.blob.core.windows.net", credential=cred)
 
     now = datetime.utcnow()
-    udk = svc.get_user_delegation_key(now - timedelta(minutes=5), now + timedelta(minutes=10))
+    udk = svc.get_user_delegation_key(now - timedelta(minutes=5), now + timedelta(minutes=15))
 
     sas = generate_blob_sas(
         account_name=account,
         container_name=container,
         blob_name=blob_name,
-        user_delegation_key=udk,                       # <-- no account key
-        permission=BlobSasPermissions(create=True, write=True),
+        user_delegation_key=udk,
+        permission=BlobSasPermissions(read=True, create=True, write=True),  # <-- add read
         start=now - timedelta(minutes=5),
-        expiry=now + timedelta(minutes=10),
+        expiry=now + timedelta(minutes=15),
         protocol="https",
-        version="2021-08-06"                           # stable
+        version="2021-08-06"
     )
 
     blob_url = f"https://{account}.blob.core.windows.net/{container}/{blob_name}"
