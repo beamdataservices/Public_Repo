@@ -55,3 +55,20 @@ jobs:
           containerAppName: ${{ env.CONTAINER_APP_NAME }}
           imageToDeploy: ${{ env.FULL_IMAGE }}
           targetPort: ${{ env.TARGET_PORT }}
+
+      - name: Route 100% traffic to latest revision
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            RG="${{ env.RESOURCE_GROUP }}"
+            APP="${{ env.CONTAINER_APP_NAME }}"
+
+            # Grab newest revision by creation time
+            LATEST=$(az containerapp revision list -g $RG -n $APP \
+              --query "sort_by([].{name:name,created:properties.createdTime}, &created)[-1].name" -o tsv)
+
+            echo "Routing all traffic to $LATEST ..."
+            az containerapp ingress traffic set -g $RG -n $APP --revision-weight $LATEST=100
+
+            echo "Current revision traffic split:"
+            az containerapp ingress traffic show -g $RG -n $APP -o table

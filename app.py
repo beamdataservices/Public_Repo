@@ -1,10 +1,11 @@
-import os, uuid, datetime, asyncio, httpx
+import os, uuid, asyncio, httpx
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions
 from pathlib import Path
+from datetime import timedelta, datetime
 from fastapi.responses import RedirectResponse
 
 APP_NAME = "ingest-portal"
@@ -49,22 +50,25 @@ async def mint_sas(
         return JSONResponse({"error": "File too large"}, status_code=400)
 
     safe_name = filename.replace("/", "_").replace("\\", "_").strip().replace(" ", "-")
-    blob_name = f"tenant={tenant_id}/uploads/{datetime.datetime.utcnow():%Y/%m/%d}/{uuid.uuid4()}-{safe_name}"
-    expires_on = datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
+    blob_name = f"tenant={tenant_id}/uploads/{datetime.utcnow():%Y/%m/%d}/{uuid.uuid4()}-{safe_name}"
 
+    # mitigate clock skew + use a stable storage service version
+    now = datetime.utcnow()
     sas = generate_blob_sas(
         account_name=account,
         container_name=container,
         blob_name=blob_name,
         account_key=key,
         permission=BlobSasPermissions(create=True, write=True),
-        expiry=expires_on
-        # IMPORTANT: no content_type here for PUT SAS
+        start=now - timedelta(minutes=5),           # allow for clock skew
+        expiry=now + timedelta(minutes=10),         # short-lived SAS
+        protocol="https",
+        version="2023-11-03"                        # stable, widely supported
+        # NOTE: no content_type here for PUT SAS
     )
 
     blob_url = f"https://{account}.blob.core.windows.net/{container}/{blob_name}"
-    upload_url = f"{blob_url}?{sas}"
-    return {"uploadUrl": upload_url, "blobUrl": blob_url}
+    return {"uploadUrl": f"{blob_url}?{sas}", "blobUrl": blob_url}
 
 @app.post("/api/notify")
 async def notify_n8n(
