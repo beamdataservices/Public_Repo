@@ -64,7 +64,7 @@
         const xhr = new XMLHttpRequest();
         xhr.open('PUT', uploadUrl, true);
         xhr.setRequestHeader('x-ms-blob-type', 'BlockBlob');
-        xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+        xhr.setRequestHeader('x-ms-blob-content-type', file.type || 'application/octet-stream');
 
         xhr.upload.onprogress = (e) => {
           if (e.lengthComputable) {
