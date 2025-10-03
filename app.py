@@ -44,7 +44,7 @@ async def mint_sas(
     if bytes > 50 * 1024 * 1024:
         return JSONResponse({"error": "File too large"}, status_code=400)
 
-    safe_name = filename.replace("/", "_").replace("\\", "_")
+    safe_name = (filename.replace("/", "_").replace("\\", "_").strip().replace(" ", "-"))
     blob_name = f"tenant={tenant_id}/uploads/{datetime.datetime.utcnow():%Y/%m/%d}/{uuid.uuid4()}-{safe_name}"
 
     expires_on = datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
