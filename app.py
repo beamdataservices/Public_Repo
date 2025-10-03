@@ -1,4 +1,4 @@
-import os, uuid, datetime
+import os, uuid, datetime, asyncio, httpx
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
@@ -63,22 +63,47 @@ async def mint_sas(
 
 @app.post("/api/notify")
 async def notify_n8n(
-    tenant_id: str    = Form(...),
-    blob_url: str     = Form(...),
-    mime: str         = Form(...),
-    bytes: int        = Form(...),
-    original_name: str= Form(...)
+    tenant_id: str = Form(...),
+    blob_url: str = Form(...),
+    mime: str = Form(...),
+    bytes: int = Form(...),
+    original_name: str = Form(...)
 ):
     _, _, _, n8n_url = get_cfg()
     if not n8n_url:
         return JSONResponse({"error": "N8N_WEBHOOK_URL not configured"}, status_code=500)
-    async with httpx.AsyncClient(timeout=15) as client:
-        r = await client.post(n8n_url, json={
-            "tenant_id": tenant_id,
-            "blob_url": blob_url,
-            "mime": mime,
-            "bytes": bytes,
-            "original_name": original_name,
-            "tags": []
-        })
-    return {"status": "ok", "n8n_status": r.status_code}
+
+    headers = {"Content-Type": "application/json"}
+    secret = os.getenv("WEBHOOK_SECRET")  # inject from KV as shown below
+    if secret:
+        headers["X-Webhook-Secret"] = secret
+
+    payload = {
+        "tenant_id": tenant_id,
+        "blob_url": blob_url,
+        "mime": mime,
+        "bytes": bytes,
+        "original_name": original_name,
+        "tags": []
+    }
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        # small retry loop for transient 5xx/429
+        for attempt in range(3):
+            try:
+                resp = await client.post(n8n_url, json=payload, headers=headers)
+                ok = 200 <= resp.status_code < 300
+                if ok:
+                    return {"status": "ok", "n8n_status": resp.status_code}
+                # retry on 429/5xx
+                if resp.status_code in (429, 500, 502, 503, 504):
+                    await asyncio.sleep(0.5 * (attempt + 1))
+                    continue
+                return JSONResponse(
+                    {"error": "n8n rejected", "n8n_status": resp.status_code, "body": resp.text[:500]},
+                    status_code=502
+                )
+            except Exception as e:
+                if attempt == 2:
+                    return JSONResponse({"error": f"notify failed: {type(e).__name__}: {e}"}, status_code=502)
+                await asyncio.sleep(0.5 * (attempt + 1))
