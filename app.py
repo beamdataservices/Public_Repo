@@ -4,8 +4,8 @@ from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions
-import httpx
 from pathlib import Path
+from fastapi.responses import RedirectResponse
 
 APP_NAME = "ingest-portal"
 app = FastAPI(title=APP_NAME)
@@ -30,6 +30,10 @@ async def health():
 @app.get("/ingest", response_class=HTMLResponse)
 async def ingest_page(request: Request):
     return templates.TemplateResponse("ingest.html", {"request": request})
+
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/ingest")
 
 @app.post("/api/sas")
 async def mint_sas(

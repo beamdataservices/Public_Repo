@@ -42,11 +42,9 @@
     try {
       statusEl.textContent = "Requesting SAS…";
       const sasForm = new FormData();
-      // normalize name to avoid weird chars/spaces
       const safeName = file.name.replace(/[\\\/]/g, "_").replace(/\s+/g, "-");
-      form.append('filename', safeName);
-      sasForm.append('tenant_id', tenant);
       sasForm.append('filename', safeName);
+      sasForm.append('tenant_id', tenant);
       sasForm.append('mime', file.type || 'application/octet-stream');
       sasForm.append('bytes', file.size);
 
