@@ -7,6 +7,7 @@ from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPerm
 from pathlib import Path
 from datetime import timedelta, datetime
 from fastapi.responses import RedirectResponse
+from azure.identity import DefaultAzureCredential
 
 APP_NAME = "ingest-portal"
 app = FastAPI(title=APP_NAME)
@@ -43,8 +44,8 @@ async def mint_sas(
     mime: str      = Form("application/octet-stream"),
     bytes: int     = Form(0)
 ):
-    account, key, container, _ = get_cfg()
-    if not account or not key:
+    account, _, container, _ = get_cfg()
+    if not account:
         return JSONResponse({"error": "Storage not configured"}, status_code=500)
     if bytes > 50 * 1024 * 1024:
         return JSONResponse({"error": "File too large"}, status_code=400)
@@ -52,18 +53,23 @@ async def mint_sas(
     safe = filename.replace("/", "_").replace("\\", "_").strip().replace(" ", "-")
     blob_name = f"tenant={tenant_id}/uploads/{datetime.utcnow():%Y/%m/%d}/{uuid.uuid4()}-{safe}"
 
+    # Managed Identity → User Delegation SAS
+    cred = DefaultAzureCredential()  # ACA’s system-assigned MI
+    svc = BlobServiceClient(f"https://{account}.blob.core.windows.net", credential=cred)
+
     now = datetime.utcnow()
+    udk = svc.get_user_delegation_key(now - timedelta(minutes=5), now + timedelta(minutes=10))
+
     sas = generate_blob_sas(
         account_name=account,
         container_name=container,
         blob_name=blob_name,
-        account_key=key,
+        user_delegation_key=udk,                       # <-- no account key
         permission=BlobSasPermissions(create=True, write=True),
-        start=now - timedelta(minutes=5),     # tolerate clock skew
+        start=now - timedelta(minutes=5),
         expiry=now + timedelta(minutes=10),
         protocol="https",
-        version="2021-08-06",                # <-- pin to a safe, widely-supported version
-        # IMPORTANT: do NOT pass content_type for PUT SAS
+        version="2021-08-06"                           # stable
     )
 
     blob_url = f"https://{account}.blob.core.windows.net/{container}/{blob_name}"
