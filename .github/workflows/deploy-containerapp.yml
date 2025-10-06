@@ -55,14 +55,21 @@ jobs:
           containerAppName: ${{ env.CONTAINER_APP_NAME }}
           imageToDeploy: ${{ env.FULL_IMAGE }}
           targetPort: ${{ env.TARGET_PORT }}
-          
-          environmentVariables: |-
-            AZ_STORAGE_ACCOUNT=ingestbeam
-            AZ_CONTAINER=ingest
-            N8N_WEBHOOK_URL=${{ secrets.INGESTION_SITE_URL_PROD }}
-            WEBHOOK_SECRET=secretref:n8n-webhook-secret
-            AZ_STORAGE_KEY=secretref:az-storage-key
 
+      # 🔧 Force-correct the env vars (no whitespace/lint pitfalls)
+      - name: Set env vars on Container App
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az containerapp update \
+              -g "${{ env.RESOURCE_GROUP }}" \
+              -n "${{ env.CONTAINER_APP_NAME }}" \
+              --set-env-vars \
+                AZ_STORAGE_ACCOUNT=ingestbeam \
+                AZ_CONTAINER=ingest \
+                N8N_WEBHOOK_URL="${{ secrets.INGESTION_SITE_URL_PROD }}" \
+                WEBHOOK_SECRET=secretref:n8n-webhook-secret \
+                AZ_STORAGE_KEY=secretref:az-storage-key
 
       - name: Route 100% traffic to latest revision
         uses: azure/cli@v2
