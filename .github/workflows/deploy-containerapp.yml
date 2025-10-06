@@ -55,6 +55,14 @@ jobs:
           containerAppName: ${{ env.CONTAINER_APP_NAME }}
           imageToDeploy: ${{ env.FULL_IMAGE }}
           targetPort: ${{ env.TARGET_PORT }}
+          
+          environmentVariables: |
+            AZ_STORAGE_ACCOUNT=ingestbeam
+            AZ_CONTAINER=ingest
+            N8N_WEBHOOK_URL=${{ secrets.INGESTION_SITE_URL_PROD }}
+            WEBHOOK_SECRET=secretref:n8n-webhook-secret
+            AZ_STORAGE_KEY=secretref:az-storage-key
+
 
       - name: Route 100% traffic to latest revision
         uses: azure/cli@v2
