@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+pydantic
+SQLAlchemy>=2.0
+pyodbc
+azure-storage-blob
+python-multipart

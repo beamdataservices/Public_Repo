@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Ingestion</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 560px; margin: 32px auto; }
+    .row { margin: 12px 0; }
+    progress { width: 100%; }
+  </style>
+</head>
+<body>
+  <h1>Upload</h1>
+  <div class="row">
+    <label>Tenant</label>
+    <input id="tenant" value="acme-sales" />
+  </div>
+  <div class="row">
+    <input id="file" type="file" />
+  </div>
+  <div class="row"><progress id="bar" value="0" max="100"></progress></div>
+  <p id="status"></p>
+
+  <script>
+  const fileInput = document.getElementById('file');
+  const statusEl = document.getElementById('status');
+  const bar = document.getElementById('bar');
+
+  const MAX = 50 * 1024 * 1024; // 50MB
+
+  fileInput.addEventListener('change', async () => {
+    const tenant = (document.getElementById('tenant').value || '').trim();
+    const file = fileInput.files?.[0];
+    if (!tenant || !file) return;
+
+    if (file.size > MAX) {
+      statusEl.textContent = "File too large (50MB limit)";
+      return;
+    }
+
+    try {
+      statusEl.textContent = "Requesting SAS…";
+      const sasForm = new FormData();
+      const safeName = file.name.replace(/[\\\/]/g, "_").replace(/\s+/g, "-");
+      sasForm.append('filename', safeName);
+      sasForm.append('tenant_id', tenant);
+      sasForm.append('mime', file.type || 'application/octet-stream');
+      sasForm.append('bytes', file.size);
+
+      const sasRes = await fetch('/api/sas', { method: 'POST', body: sasForm });
+      const sasJson = await sasRes.json();
+      if (!sasRes.ok || !sasJson.uploadUrl) {
+        throw new Error(sasJson.error || 'SAS mint failed');
+      }
+
+      const { uploadUrl, blobUrl } = sasJson;
+
+      statusEl.textContent = "Uploading to Blob…";
+      bar.value = 5;
+
+      // Use XHR for progress + better error surfacing
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', uploadUrl, true);
+        xhr.setRequestHeader('x-ms-blob-type', 'BlockBlob');
+        xhr.setRequestHeader('x-ms-blob-content-type', file.type || 'application/octet-stream');
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const pct = 5 + Math.floor((e.loaded / e.total) * 80);
+            bar.value = Math.min(90, pct);
+          }
+        };
+        xhr.onload = () => {
+          if (xhr.status === 201) return resolve();
+          reject(new Error(`Blob PUT failed: ${xhr.status} ${xhr.responseText || ''}`));
+        };
+        xhr.onerror = () => reject(new Error('Network error during Blob PUT'));
+        xhr.send(file);
+      });
+
+      statusEl.textContent = "Notifying n8n…";
+      bar.value = 95;
+
+      const notify = new FormData();
+      notify.append('tenant_id', tenant);
+      notify.append('blob_url', blobUrl);
+      notify.append('mime', file.type || 'application/octet-stream');
+      notify.append('bytes', file.size);
+      notify.append('original_name', file.name);
+
+      const notifyRes = await fetch('/api/notify', { method: 'POST', body: notify });
+      const notifyJson = await notifyRes.json().catch(() => ({}));
+      if (!notifyRes.ok) {
+        throw new Error(`Notify failed: ${notifyRes.status} ${JSON.stringify(notifyJson)}`);
+      }
+
+      bar.value = 100;
+      statusEl.textContent = "Done ✅";
+    } catch (err) {
+      statusEl.textContent = `Error: ${err.message}`;
+      console.error(err);
+    }
+  });
+</script>
+
+</body>
+</html>
