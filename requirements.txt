@@ -1,9 +1,0 @@
-fastapi
-uvicorn
-jinja2
-azure-storage-blob
-httpx
-python-multipart
-gunicorn
-azure-identity
-azure-keyvault-secrets
