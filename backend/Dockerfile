@@ -1,8 +1,9 @@
-FROM python:3.11-slim
+FROM python:3.11-bookworm
 
-# Install system dependencies for pyodbc + SQL Server driver (Debian 12)
+# Install system dependencies for ODBC on Debian 12
 RUN apt-get update && apt-get install -y \
-    curl gnupg apt-transport-https ca-certificates unixodbc-dev && \
+    curl gnupg apt-transport-https ca-certificates \
+    unixodbc unixodbc-dev libgssapi-krb5-2 && \
     curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg && \
     curl https://packages.microsoft.com/config/debian/12/prod.list > /etc/apt/sources.list.d/mssql-release.list && \
     apt-get update && ACCEPT_EULA=Y apt-get install -y msodbcsql18 && \
