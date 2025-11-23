@@ -81,6 +81,8 @@ jobs:
           containerAppName: ${{ env.CONTAINER_APP_NAME }}
           imageToDeploy: ${{ env.FULL_IMAGE }}
           targetPort: ${{ env.TARGET_PORT }}
+          registryServer: ${{ env.ACR_LOGIN_SERVER }}
+          registryIdentity: "system"
 
       # -------------------------
       # 8) Route 100% traffic to latest revision
