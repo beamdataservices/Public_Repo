@@ -26,7 +26,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 🔐 Login via OIDC (NO password, NO secrets)
+      # 🔐 Login to Azure using Federated Identity (OIDC)
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
@@ -34,16 +34,25 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # 🧮 Compute FULL_IMAGE at runtime (avoids VS Code linter errors)
+      # 🧮 Compute FULL_IMAGE dynamically to avoid VS Code linter warnings
       - name: Compute FULL_IMAGE
         run: |
           echo "FULL_IMAGE=${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}" >> $GITHUB_ENV
 
-      # 🏗 Buildx setup
+      # 🔑 Log Docker into ACR using OIDC — FIXES 401 Unauthorized
+      - name: Login to Azure Container Registry
+        uses: azure/docker-login@v2
+        with:
+          login-server: ${{ env.ACR_LOGIN_SERVER }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # 🏗 Buildx for multi-arch and caching support
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 🐳 Build & Push to ACR
+      # 🐳 Build & Push backend image to ACR
       - name: Build & Push backend image
         uses: docker/build-push-action@v6
         with:
@@ -51,7 +60,7 @@ jobs:
           push: true
           tags: ${{ env.FULL_IMAGE }}
 
-      # 🚀 Deploy to Azure Container Apps
+      # 🚀 Deploy backend to Azure Container Apps
       - name: Deploy backend to Azure Container Apps
         uses: azure/container-apps-deploy-action@v2
         with:
@@ -60,7 +69,7 @@ jobs:
           imageToDeploy: ${{ env.FULL_IMAGE }}
           targetPort: ${{ env.TARGET_PORT }}
 
-      # 🔁 Route 100% traffic to latest revision
+      # 🔁 Route ALL traffic to the latest revision
       - name: Route 100% traffic to latest revision
         uses: azure/cli@v2
         with:
