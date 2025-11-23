@@ -6,12 +6,13 @@ on:
   workflow_dispatch:
 
 permissions:
-  id-token: write
+  id-token: write       # REQUIRED for OIDC
   contents: read
 
 env:
   RESOURCE_GROUP: BEAM-Analytics
   CONTAINER_APP_NAME: beamanalytics-backend
+  ACR_NAME: beamanalyticsacr
   ACR_LOGIN_SERVER: beamanalyticsacr.azurecr.io
   IMAGE_NAME: beamanalytics-backend
   TARGET_PORT: "8000"
@@ -21,10 +22,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+      # -------------------------
+      # 1) Checkout Repo
+      # -------------------------
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 🔐 Login to Azure using OIDC (NO passwords)
+      # -------------------------
+      # 2) Login to Azure via OIDC (NO passwords needed)
+      # -------------------------
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
@@ -32,16 +39,31 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # 🧮 Set FULL_IMAGE dynamically (fixes linter warnings)
+      # -------------------------
+      # 3) Login to ACR using federated identity
+      # -------------------------
+      - name: Login to ACR using OIDC token
+        run: |
+          echo "Logging into ACR with federated identity..."
+          az acr login --name ${{ env.ACR_NAME }}
+
+      # -------------------------
+      # 4) Build image tag dynamically & export to env
+      #    (Fixes VS Code linting issues)
+      # -------------------------
       - name: Compute FULL_IMAGE
         run: |
           echo "FULL_IMAGE=${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}" >> $GITHUB_ENV
 
-      # 🏗 Buildx
+      # -------------------------
+      # 5) Setup Buildx
+      # -------------------------
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 🐳 Build & Push directly to ACR (OIDC token used automatically)
+      # -------------------------
+      # 6) Build & Push image → ACR
+      # -------------------------
       - name: Build & Push backend image
         uses: docker/build-push-action@v6
         with:
@@ -49,7 +71,9 @@ jobs:
           push: true
           tags: ${{ env.FULL_IMAGE }}
 
-      # 🚀 Deploy into Azure Container Apps
+      # -------------------------
+      # 7) Deploy to Azure Container Apps
+      # -------------------------
       - name: Deploy backend to Azure Container Apps
         uses: azure/container-apps-deploy-action@v2
         with:
@@ -58,14 +82,21 @@ jobs:
           imageToDeploy: ${{ env.FULL_IMAGE }}
           targetPort: ${{ env.TARGET_PORT }}
 
-      # 🔁 Route all traffic to latest revision
+      # -------------------------
+      # 8) Route 100% traffic to latest revision
+      # -------------------------
       - name: Route 100% traffic to latest revision
         uses: azure/cli@v2
         with:
           inlineScript: |
             RG="${{ env.RESOURCE_GROUP }}"
             APP="${{ env.CONTAINER_APP_NAME }}"
+
             LATEST=$(az containerapp revision list -g $RG -n $APP \
               --query "sort_by([].{name:name,created:properties.createdTime}, &created)[-1].name" -o tsv)
+
+            echo "Routing all traffic to revision: $LATEST"
             az containerapp ingress traffic set -g $RG -n $APP --revision-weight $LATEST=100
+
+            echo "Current traffic split:"
             az containerapp ingress traffic show -g $RG -n $APP -o table
