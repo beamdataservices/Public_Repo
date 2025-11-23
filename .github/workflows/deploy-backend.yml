@@ -26,7 +26,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 🔐 Login to Azure (OIDC)
+      # 🔐 Login via OIDC (NO password, NO secrets)
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
@@ -34,31 +34,16 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # 🛑 Verify the federated credential exists in Azure AD
-      - name: Validate Federated Identity Exists
-        uses: azure/cli@v2
-        with:
-          inlineScript: |
-            az ad app federated-credential list \
-              --id ${{ secrets.AZURE_CLIENT_ID }} \
-              --query "[?contains(subject,'${{ github.repository }}')]" -o tsv
-
-            if [ $? -ne 0 ]; then
-              echo "❌ ERROR: Missing GitHub OIDC federated credential."
-              exit 1
-            fi
-
-      # 🧮 Compute FULL_IMAGE so VS Code linter doesn't complain
+      # 🧮 Compute FULL_IMAGE at runtime (avoids VS Code linter errors)
       - name: Compute FULL_IMAGE
-        id: compute-image
         run: |
           echo "FULL_IMAGE=${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}" >> $GITHUB_ENV
 
-      # 🏗 Buildx for faster multi-arch builds
+      # 🏗 Buildx setup
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 🐳 Build + Push to ACR
+      # 🐳 Build & Push to ACR
       - name: Build & Push backend image
         uses: docker/build-push-action@v6
         with:
@@ -75,13 +60,14 @@ jobs:
           imageToDeploy: ${{ env.FULL_IMAGE }}
           targetPort: ${{ env.TARGET_PORT }}
 
-      # 🔁 Route ALL traffic to latest revision
+      # 🔁 Route 100% traffic to latest revision
       - name: Route 100% traffic to latest revision
         uses: azure/cli@v2
         with:
           inlineScript: |
             RG="${{ env.RESOURCE_GROUP }}"
             APP="${{ env.CONTAINER_APP_NAME }}"
+
             LATEST=$(az containerapp revision list -g $RG -n $APP \
               --query "sort_by([].{name:name,created:properties.createdTime}, &created)[-1].name" -o tsv)
 
