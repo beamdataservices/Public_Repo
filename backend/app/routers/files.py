@@ -11,8 +11,7 @@ from sqlalchemy.orm import Session
 from ..config import get_settings
 from ..deps import get_db
 from ..auth import get_current_user
-from ..auth import CurrentUser
-from .. import models
+from ..models import File as FileModel, User   # <-- IMPORTANT FIX
 
 router = APIRouter()
 
@@ -36,7 +35,7 @@ class FileOut(BaseModel):
 async def upload_file(
     uploaded_file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    user: CurrentUser = Depends(get_current_user),
+    user: User = Depends(get_current_user),   # <-- FIXED
 ):
     if uploaded_file.content_type not in (
         "text/csv",
@@ -50,13 +49,14 @@ async def upload_file(
     blob_path = f"{tenant_prefix}/raw/{uploaded_file.filename}"
 
     data = await uploaded_file.read()
+
     try:
         blob_client = container_client.get_blob_client(blob_path)
         blob_client.upload_blob(data, overwrite=True)
     except Exception as ex:
         raise HTTPException(status_code=500, detail=f"Blob upload failed: {ex}")
 
-    db_file = models.File(
+    db_file = FileModel(
         id=file_id,
         tenant_id=user.tenant_id,
         uploaded_by=user.id,
@@ -78,12 +78,12 @@ async def upload_file(
 @router.get("/", response_model=List[FileOut])
 def list_files(
     db: Session = Depends(get_db),
-    user: CurrentUser = Depends(get_current_user),
+    user: User = Depends(get_current_user),   # <-- FIXED
 ):
     files = (
-        db.query(models.File)
-        .filter(models.File.tenant_id == user.tenant_id)
-        .order_by(models.File.uploaded_at.desc())
+        db.query(FileModel)
+        .filter(FileModel.tenant_id == user.tenant_id)
+        .order_by(FileModel.uploaded_at.desc())
         .all()
     )
     return files
@@ -93,16 +93,17 @@ def list_files(
 def get_file(
     file_id: str,
     db: Session = Depends(get_db),
-    user: CurrentUser = Depends(get_current_user),
+    user: User = Depends(get_current_user),   # <-- FIXED
 ):
     file = (
-        db.query(models.File)
+        db.query(FileModel)
         .filter(
-            models.File.id == file_id,
-            models.File.tenant_id == user.tenant_id,
+            FileModel.id == file_id,
+            FileModel.tenant_id == user.tenant_id,
         )
         .first()
     )
     if not file:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+
     return file
