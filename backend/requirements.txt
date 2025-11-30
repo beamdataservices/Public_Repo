@@ -1,9 +1,13 @@
 fastapi
 uvicorn[standard]
 python-dotenv
-pydantic==1.10.13
+pydantic>=2.5
+pydantic-settings>=2.0
 SQLAlchemy>=2.0
 pyodbc
 azure-storage-blob
 python-multipart
 alembic
+passlib[bcrypt]
+python-jose
+email-validator
