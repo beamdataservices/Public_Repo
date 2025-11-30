@@ -9,7 +9,8 @@ from azure.storage.blob import BlobServiceClient
 from sqlalchemy.orm import Session
 
 from ..config import get_settings
-from ..deps import get_db, get_current_user
+from ..deps import get_db
+from ..auth import get_current_user
 from ..auth import CurrentUser
 from .. import models
 
