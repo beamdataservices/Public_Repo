@@ -1,8 +1,12 @@
 # backend/app/models.py
-from sqlalchemy import Column, String, DateTime, ForeignKey, BigInteger
+from sqlalchemy import (
+    Column, String, DateTime, ForeignKey, BigInteger, Boolean, Enum
+)
 from sqlalchemy.dialects.mssql import UNIQUEIDENTIFIER
 from sqlalchemy.sql import func
 import uuid
+import enum
+
 from .db import Base
 
 
@@ -10,11 +14,27 @@ def uuid_str() -> str:
     return str(uuid.uuid4())
 
 
+class TenantPlan(str, enum.Enum):
+    demo = "demo"
+    standard = "standard"
+
+
+class UserRole(str, enum.Enum):
+    admin = "admin"
+    user = "user"
+
+
 class Tenant(Base):
     __tablename__ = "tenants"
 
     id = Column(UNIQUEIDENTIFIER, primary_key=True, default=uuid_str)
     name = Column(String(200), nullable=False)
+    slug = Column(String(200), unique=True, nullable=False)
+
+    plan = Column(Enum(TenantPlan), nullable=False, server_default="demo")
+    trial_ends_at = Column(DateTime(timezone=True))
+    is_active = Column(Boolean, nullable=False, server_default="1")
+
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.sysutcdatetime())
 
 
@@ -23,9 +43,14 @@ class User(Base):
 
     id = Column(UNIQUEIDENTIFIER, primary_key=True, default=uuid_str)
     tenant_id = Column(UNIQUEIDENTIFIER, ForeignKey("tenants.id"), nullable=False)
-    email = Column(String(255), nullable=False)
+
+    email = Column(String(255), nullable=False, unique=True)
+    password_hash = Column(String(255), nullable=False)
+
     display_name = Column(String(255))
-    role = Column(String(50), nullable=False, server_default="user")
+    role = Column(Enum(UserRole), nullable=False, server_default="user")
+    is_active = Column(Boolean, nullable=False, server_default="1")
+
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.sysutcdatetime())
 
 
@@ -41,4 +66,5 @@ class File(Base):
     file_type = Column(String(20), nullable=False)
     size_bytes = Column(BigInteger)
     status = Column(String(30), nullable=False, server_default="uploaded")
+
     uploaded_at = Column(DateTime(timezone=True), nullable=False, server_default=func.sysutcdatetime())

@@ -1,14 +1,23 @@
-# backend/app/config.py
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 from functools import lru_cache
 import urllib.parse
 import os
 
 
 class Settings(BaseSettings):
+    # --- Azure ---
     AZURE_SQL_CONNSTRING: str
     AZURE_BLOB_CONNSTRING: str
     BLOB_CONTAINER: str = "tenant-files"
+
+    # --- JWT ---
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY")
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 14
+
+    # --- Trial settings ---
+    TRIAL_DAYS: int = 14
 
     class Config:
         env_file = ".env"
@@ -16,11 +25,6 @@ class Settings(BaseSettings):
 
     @property
     def sqlalchemy_database_uri(self) -> str:
-        """
-        Convert the ADO-style Azure SQL connection string into a SQLAlchemy URL.
-        Expects something like:
-        Server=tcp:beamanalyticssql2.database.windows.net,1433;Database=beamtenantdb;User ID=beamadmin;Password=...;Encrypt=true;
-        """
         parts = {}
         for segment in self.AZURE_SQL_CONNSTRING.split(";"):
             if not segment.strip():
@@ -36,14 +40,12 @@ class Settings(BaseSettings):
         password = parts.get("password") or parts.get("pwd")
 
         if not (server and database and user and password):
-            raise ValueError("AZURE_SQL_CONNSTRING is missing required parts")
+            raise ValueError("AZURE_SQL_CONNSTRING missing required parts")
 
         user_enc = urllib.parse.quote_plus(user)
         pwd_enc = urllib.parse.quote_plus(password)
         driver = urllib.parse.quote_plus("ODBC Driver 18 for SQL Server")
 
-        # Example:
-        # mssql+pyodbc://user:pass@server:1433/db?driver=ODBC+Driver+18+for+SQL+Server&Encrypt=yes&TrustServerCertificate=no
         return (
             f"mssql+pyodbc://{user_enc}:{pwd_enc}@{server}/{database}"
             f"?driver={driver}&Encrypt=yes&TrustServerCertificate=no"
@@ -52,8 +54,4 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings(
-        AZURE_SQL_CONNSTRING=os.getenv("AZURE_SQL_CONNSTRING", ""),
-        AZURE_BLOB_CONNSTRING=os.getenv("AZURE_BLOB_CONNSTRING", ""),
-        BLOB_CONTAINER=os.getenv("BLOB_CONTAINER", "tenant-files"),
-    )
+    return Settings()

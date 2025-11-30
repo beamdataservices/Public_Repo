@@ -22,3 +22,10 @@ def init_db():
     # For now, create tables automatically. Later we'll do proper migrations.
     from . import models  # noqa
     Base.metadata.create_all(bind=engine)
+    
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
