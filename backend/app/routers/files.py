@@ -2,7 +2,7 @@
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import List
-from uuid import uuid4
+from uuid import uuid4, UUID
 from datetime import datetime
 
 from azure.storage.blob import BlobServiceClient
@@ -21,7 +21,7 @@ container_client = blob_service.get_container_client(settings.BLOB_CONTAINER)
 
 
 class FileOut(BaseModel):
-    id: str
+    id: UUID
     original_name: str
     uploaded_at: datetime
     status: str
