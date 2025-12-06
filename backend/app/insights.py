@@ -72,10 +72,14 @@ def build_charts(df: pd.DataFrame) -> dict:
     cat_cols = df.select_dtypes(include=["object"]).columns
     if len(cat_cols) > 0:
         col = cat_cols[0]
+
+        counts = df[col].value_counts().reset_index()
+        counts.columns = [col, "count"]
+
         fig = px.bar(
-            df[col].value_counts().reset_index(),
-            x="index",
-            y=col,
+            counts,
+            x=col,
+            y="count",
             title=f"{col} Counts",
         )
         charts["bar_chart"] = fig.to_dict()
