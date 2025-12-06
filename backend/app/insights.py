@@ -1,16 +1,35 @@
 import io
+import os
 import json
 import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.figure_factory as ff
 import plotly.graph_objs as go
-
+from openai import OpenAI
 from fastapi import HTTPException
 from azure.storage.blob import BlobServiceClient
 from app.config import get_settings
 settings = get_settings()
 
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+def generate_ai_summary(df):
+    client = OpenAI(api_key=settings.OPENAI_KEY)
+
+    sample = df.head(20).to_csv(index=False)
+    prompt = f"""
+    You are a data analyst. Explain the main patterns in the dataset below.
+    Dataset sample:
+    {sample}
+    """
+
+    response = client.chat.completions.create(
+        model="gpt-4.1-mini",
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    return response.choices[0].message["content"]
 
 # -------------------------
 # Load file from Azure Blob
@@ -140,4 +159,5 @@ def generate_insights(blob_path: str, filters: dict = None) -> dict:
         "kpis": compute_kpis(df),
         "charts": build_charts(df),
         "filters": extract_filters(df),
+        "ai_summary": generate_ai_summary(df)
     }

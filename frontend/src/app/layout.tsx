@@ -15,7 +15,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-slate-950 text-slate-50 min-h-screen">
-        <ClientLayout>{children}</ClientLayout>
+        {/* Theme wrapper - will allow dynamic user themes later */}
+        <ClientLayout>
+          {children}
+        </ClientLayout>
       </body>
     </html>
   );
