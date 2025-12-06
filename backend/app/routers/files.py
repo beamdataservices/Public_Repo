@@ -8,10 +8,10 @@ from datetime import datetime
 from azure.storage.blob import BlobServiceClient
 from sqlalchemy.orm import Session
 
-from ..config import get_settings
-from ..deps import get_db
-from ..auth import get_current_user
-from ..models import File as FileModel, User   # <-- IMPORTANT FIX
+from app.config import get_settings
+from app.deps import get_db
+from app.auth import get_current_user
+from app.models import File as FileModel, User   # <-- IMPORTANT FIX
 
 router = APIRouter()
 

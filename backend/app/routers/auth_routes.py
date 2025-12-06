@@ -3,10 +3,10 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 
-from .deps import get_db
-from .models import User, Tenant, TenantPlan, UserRole
-from .config import get_settings
-from .auth import (
+from app.deps import get_db
+from app.models import User, Tenant, TenantPlan, UserRole
+from app.config import get_settings
+from app.auth import (
     hash_password,
     verify_password,
     create_access_token,

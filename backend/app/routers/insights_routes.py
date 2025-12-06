@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
-from models import User
-from deps import get_current_user
-from insights import generate_insights
+from app.models import User
+from app.deps import get_current_user
+from app.insights import generate_insights
 
 router = APIRouter(prefix="/api/files")
 
