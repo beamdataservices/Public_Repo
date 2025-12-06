@@ -12,3 +12,10 @@ passlib[bcrypt]
 python-jose
 email-validator
 bcrypt==3.2.2
+pandas
+numpy
+openpyxl
+plotly
+psycopg2-binary
+azure-identity
+
