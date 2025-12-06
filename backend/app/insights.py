@@ -12,10 +12,10 @@ from azure.storage.blob import BlobServiceClient
 from app.config import get_settings
 settings = get_settings()
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 def generate_ai_summary(df):
-    client = OpenAI(api_key=settings.OPENAI_KEY)
+    API_KEY = os.getenv("OPENAI_API_KEY")
+    client = OpenAI(api_key=API_KEY)
 
     sample = df.head(20).to_csv(index=False)
     prompt = f"""
@@ -29,7 +29,7 @@ def generate_ai_summary(df):
         messages=[{"role": "user", "content": prompt}],
     )
 
-    return response.choices[0].message["content"]
+    return response.choices[0].message.content
 
 # -------------------------
 # Load file from Azure Blob

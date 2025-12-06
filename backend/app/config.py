@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     AZURE_SQL_CONNSTRING: str
     AZURE_BLOB_CONNSTRING: str
     BLOB_CONTAINER: str = "tenant-files"
+    OPENAI_KEY: str
+
 
     # --- JWT ---
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY")
