@@ -58,17 +58,20 @@ def compute_kpis(df: pd.DataFrame) -> dict:
 # -------------------------
 # Build Chart Objects
 # -------------------------
+def safe_fig(fig):
+    return json.loads(fig.to_json())
+
 def build_charts(df: pd.DataFrame) -> dict:
     charts = {}
 
-    # Histogram for first numeric column
+    # Histogram
     numeric_cols = df.select_dtypes(include=[np.number]).columns
     if len(numeric_cols) > 0:
         col = numeric_cols[0]
         fig = px.histogram(df, x=col, title=f"Distribution of {col}")
-        charts["histogram"] = fig.to_dict()
+        charts["histogram"] = safe_fig(fig)
 
-    # Bar chart for first categorical column
+    # Bar chart
     cat_cols = df.select_dtypes(include=["object"]).columns
     if len(cat_cols) > 0:
         col = cat_cols[0]
@@ -76,25 +79,22 @@ def build_charts(df: pd.DataFrame) -> dict:
         counts = df[col].value_counts().reset_index()
         counts.columns = [col, "count"]
 
-        fig = px.bar(
-            counts,
-            x=col,
-            y="count",
-            title=f"{col} Counts",
-        )
-        charts["bar_chart"] = fig.to_dict()
+        fig = px.bar(counts, x=col, y="count", title=f"{col} Counts")
+        charts["bar_chart"] = safe_fig(fig)
 
     # Correlation heatmap
     if len(numeric_cols) >= 2:
         corr = df[numeric_cols].corr()
+
         fig = ff.create_annotated_heatmap(
-            z=corr.values,
+            z=corr.to_numpy(),
             x=list(corr.columns),
             y=list(corr.index),
             colorscale="Viridis",
             showscale=True,
         )
-        charts["correlation_matrix"] = fig.to_dict()
+
+        charts["correlation_matrix"] = safe_fig(fig)
 
     return charts
 
