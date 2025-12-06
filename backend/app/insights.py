@@ -8,7 +8,8 @@ import plotly.graph_objs as go
 
 from fastapi import HTTPException
 from azure.storage.blob import BlobServiceClient
-from config import settings
+from app.config import get_settings
+settings = get_settings()
 
 
 # -------------------------
@@ -17,9 +18,9 @@ from config import settings
 def load_file_from_blob(blob_path: str) -> pd.DataFrame:
     try:
         blob_service = BlobServiceClient.from_connection_string(
-            settings.AZURE_STORAGE_CONNECTION_STRING
+            settings.AZURE_BLOB_CONNSTRING
         )
-        container = blob_service.get_container_client(settings.AZURE_STORAGE_CONTAINER)
+        container = blob_service.get_container_client(settings.BLOB_CONTAINER)
 
         blob = container.get_blob_client(blob_path)
         data = blob.download_blob().readall()
