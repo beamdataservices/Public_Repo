@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     AZURE_SQL_CONNSTRING: str
     AZURE_BLOB_CONNSTRING: str
     BLOB_CONTAINER: str = "tenant-files"
-    OPENAI_KEY: str
+    #OPENAI_KEY: str should be handled within ACA env now.
 
 
     # --- JWT ---

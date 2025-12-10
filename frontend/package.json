@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "clsx": "^2.1.1",
+    "marked": "^17.0.1",
     "next": "^16.0.7",
     "plotly.js": "^3.3.0",
     "react": "19.2.0",
