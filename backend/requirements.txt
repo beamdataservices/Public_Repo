@@ -19,3 +19,4 @@ plotly
 psycopg2-binary
 azure-identity
 openai
+xlrd>=2.0.1

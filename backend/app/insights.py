@@ -18,8 +18,16 @@ settings = get_settings()
 # Helpers: make payload JSON-safe
 # -------------------------
 def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
-    # Convert +/-inf to NaN so we handle consistently
-    return df.replace([np.inf, -np.inf], np.nan)
+    df = df.replace([np.inf, -np.inf], np.nan)
+
+    # Drop completely empty rows/cols (very common with spread-out Excel sheets)
+    df = df.dropna(how="all")
+    df = df.dropna(axis=1, how="all")
+
+    # Normalize column names
+    df.columns = [str(c).strip() for c in df.columns]
+
+    return df
 
 
 def _json_safe(obj):
@@ -47,22 +55,25 @@ def generate_ai_summary(df: pd.DataFrame) -> str:
     if not API_KEY:
         return "AI summary unavailable (missing OPENAI_API_KEY)."
 
-    client = OpenAI(api_key=API_KEY)
+    try:
+        client = OpenAI(api_key=API_KEY)
 
-    # Keep it small and safe
-    sample = df.head(20).to_csv(index=False)
-    prompt = f"""
+        sample = df.head(20).to_csv(index=False)
+        prompt = f"""
 You are a data analyst. Explain the main patterns in the dataset below.
 Dataset sample:
 {sample}
 """
 
-    response = client.chat.completions.create(
-        model="gpt-4.1-mini",
-        messages=[{"role": "user", "content": prompt}],
-    )
+        response = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return response.choices[0].message.content
 
-    return response.choices[0].message.content
+    except Exception as e:
+        return f"AI summary unavailable: {type(e).__name__}"
+
 
 
 # -------------------------
@@ -200,14 +211,25 @@ def apply_filters(df: pd.DataFrame, filters: dict) -> pd.DataFrame:
 # -------------------------
 def generate_insights(blob_path: str, filters: dict = None) -> dict:
     df = load_file_from_blob(blob_path)
+
     if filters:
         df = apply_filters(df, filters)
 
+    # Guardrails to prevent huge Plotly payloads / slow responses
+    MAX_ROWS_FOR_CHARTS = 50000
+    df_for_charts = df.head(MAX_ROWS_FOR_CHARTS)
+
     result = {
         "kpis": compute_kpis(df),
-        "charts": build_charts(df),
+        "charts": build_charts(df_for_charts),
         "filters": extract_filters(df),
         "ai_summary": generate_ai_summary(df),
+        "debug": {
+            "version": "insights_py_2026-01-03_v2",
+            "rows": int(df.shape[0]),
+            "cols": int(df.shape[1]),
+            "rows_used_for_charts": int(df_for_charts.shape[0]),
+        },
     }
 
     # Critical: prevent JSONResponse crash on NaN/Infinity anywhere in payload
