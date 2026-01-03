@@ -2,42 +2,19 @@
 
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
-
-// Keep real Files sidebar:
-import SidebarContent from "@/components/dashboard/SidebarContent";
-
-// Preset filters panel:
 import PresetFilterSidebar from "./PresetFilterSidebar";
 
-export default function InsightsLayout({ children }: { children: React.ReactNode }) {
-  const [showFileSidebar, setShowFileSidebar] = useState(true);
+export default function InsightsLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [showPresetFilters, setShowPresetFilters] = useState(true);
 
   return (
     <div className="flex min-h-screen bg-[#0A0F1D] text-slate-100">
 
-      {/* LEFT: REAL FILE SIDEBAR */}
-      <div
-        className={cn(
-          "transition-all duration-300 border-r border-slate-800 bg-[#0D1324]",
-          showFileSidebar ? "w-72" : "w-8"
-        )}
-      >
-        <button
-          onClick={() => setShowFileSidebar(!showFileSidebar)}
-          className="w-full py-2 text-xs bg-slate-900 hover:bg-slate-800"
-        >
-          {showFileSidebar ? "<<<" : ">>>"}
-        </button>
-
-        {showFileSidebar && (
-          <div className="p-2">
-            <SidebarContent />
-          </div>
-        )}
-      </div>
-
-      {/* RIGHT: PRESET FILTER SIDEBAR */}
+      {/* RIGHT SIDE — PRESET FILTER SIDEBAR */}
       <div
         className={cn(
           "transition-all duration-300 border-r border-slate-800 bg-[#0B1221]",
@@ -48,7 +25,7 @@ export default function InsightsLayout({ children }: { children: React.ReactNode
           onClick={() => setShowPresetFilters(!showPresetFilters)}
           className="w-full py-2 text-xs bg-slate-900 hover:bg-slate-800"
         >
-          {showPresetFilters ? "<<<" : ">>>"}
+          {showPresetFilters ? "<<<" : ">>>"} 
         </button>
 
         {showPresetFilters && (

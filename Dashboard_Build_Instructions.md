@@ -4,17 +4,16 @@ How to Build Custom Dashboards, KPIs, Filters & Visuals for Uploaded Tenant File
 
 BEAM Analytics provides a complete ingestion → storage → insights pipeline.
 
-When a tenant uploads a CSV/XLSX file, the system:
+When a tenant uploads a CSV/xls/XLSX file, the system:
 
 Stores file in Azure Blob
-Registers file metadata in Postgres
+Registers file metadata in db
 Displays file in UI sidebar
 Requests insights from backend
 Renders dashboards dynamically
 
 
-You (the analytics developer) only need to modify one place to build new dashboards:
-
+Analytics dev for dashboards should all be inside:
 backend/app/insights.py
 
 
@@ -60,7 +59,7 @@ This architecture allows new analytics features without touching the frontend.
 2. 🔧 Backend Structure
 backend/
   app/
-    insights.py        ← You modify this
+    insights.py        
     routers/
       insights_routes.py
     models.py
@@ -69,7 +68,7 @@ backend/
     config.py
 
 
-Your entry point for all dashboard logic:
+The entry point for all dashboard logic:
 
 generate_insights()
 
