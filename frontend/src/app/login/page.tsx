@@ -81,7 +81,7 @@ export default function LoginPage() {
         <p className="mt-4 text-center text-xs text-slate-400">
           Don't have an account?{" "}
           <Link href="/register" className="text-cyan-300 hover:underline">
-            Create your tenant
+            Create your account
           </Link>
         </p>
       </div>

@@ -4,14 +4,14 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Plot from "@/components/PlotNoTypes";
-import FilterPanel from "./FilterPanel"; 
+import FilterPanel from "./FilterPanel";
 import AIWidget from "./AIWidget";
 
 type InsightsResponse = {
   kpis: Record<string, any>;
   charts: Record<string, any>;
   filters: Record<string, string[]>;
-  ai_summary?: string | null;   // 
+  ai_summary?: string | null;
 };
 
 type FiltersState = Record<string, string | null>;
@@ -25,56 +25,80 @@ export default function FileInsightsPage() {
   const { tokens } = useAuth();
 
   const [insights, setInsights] = useState<InsightsResponse | null>(null);
+
+  // Applied filters (sent to backend)
   const [filtersState, setFiltersState] = useState<FiltersState>({});
+
+  // Pending filters (UI selections)
+  const [pendingFilters, setPendingFilters] = useState<FiltersState>({});
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const hasToken = !!tokens?.accessToken;
 
   // -----------------------------------------------------
-  // Fetch Insights
+  // Fetch Insights with explicit filters (used for presets)
   // -----------------------------------------------------
-  const fetchInsights = useCallback(async () => {
-    if (!hasToken || !fileId) return;
+  const fetchInsightsWithFilters = useCallback(
+    async (nextFilters: FiltersState) => {
+      if (!hasToken || !fileId) return;
 
-    try {
-      setLoading(true);
-      setError(null);
+      try {
+        setLoading(true);
+        setError(null);
 
-      const res = await fetch(
-        `${API_BASE_URL}/api/files/${fileId}/insights`,
-        {
+        const res = await fetch(`${API_BASE_URL}/api/files/${fileId}/insights`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${tokens!.accessToken}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ filters: filtersState }),
+          body: JSON.stringify({ filters: nextFilters }),
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(
+            `Failed to load insights (${res.status}): ${text || res.statusText}`
+          );
         }
-      );
 
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(
-          `Failed to load insights (${res.status}): ${
-            text || res.statusText
-          }`
-        );
+        const data = (await res.json()) as InsightsResponse;
+        setInsights(data);
+      } catch (err: any) {
+        console.error("Insights error:", err);
+        setError(err.message || "Failed to load insights");
+      } finally {
+        setLoading(false);
       }
+    },
+    [hasToken, fileId, tokens]
+  );
 
-      const data = (await res.json()) as InsightsResponse;
-      setInsights(data);
-    } catch (err: any) {
-      console.error("Insights error:", err);
-      setError(err.message || "Failed to load insights");
-    } finally {
-      setLoading(false);
-    }
-  }, [hasToken, fileId, filtersState, tokens]);
+  // -----------------------------------------------------
+  // Fetch Insights using current applied filters
+  // -----------------------------------------------------
+  const fetchInsights = useCallback(async () => {
+    await fetchInsightsWithFilters(filtersState);
+  }, [fetchInsightsWithFilters, filtersState]);
 
+  // Initial fetch + whenever applied filters change
   useEffect(() => {
     fetchInsights();
   }, [fetchInsights]);
+
+  // -----------------------------------------------------
+  // Debounce pending filters -> applied filters
+  // (prevents spamming backend on every dropdown change)
+  // -----------------------------------------------------
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setFiltersState(pendingFilters);
+    }, 500);
+
+    return () => clearTimeout(t);
+  }, [pendingFilters]);
 
   // -----------------------------------------------------
   // Render Checks
@@ -105,9 +129,7 @@ export default function FileInsightsPage() {
 
   if (!insights) {
     return (
-      <div className="px-6 py-6 text-sm text-slate-400">
-        No insights available.
-      </div>
+      <div className="px-6 py-6 text-sm text-slate-400">No insights available.</div>
     );
   }
 
@@ -115,38 +137,79 @@ export default function FileInsightsPage() {
   const anyFilters = Object.keys(filters || {}).length > 0;
 
   const handleFilterChange = (key: string, value: string | null) => {
-    setFiltersState((prev) => ({
+    setPendingFilters((prev) => ({
       ...prev,
       [key]: value === "" ? null : value,
     }));
+  };
+
+  const clearAll = () => {
+    setPendingFilters({});
+    setFiltersState({});
+    // Optional immediate refresh on clear:
+    fetchInsightsWithFilters({});
+  };
+
+  // -----------------------------------------------------
+  // Presets (stub logic now, real logic later)
+  // -----------------------------------------------------
+  const applyPreset = (preset: string) => {
+    // NOTE: For now we don't know the dataset schema, so presets are placeholders.
+    // Later we can:
+    // - map presets to real filter selections
+    // - or send preset name to backend (recommended long-term)
+
+    const nextFilters: FiltersState = { ...pendingFilters };
+
+    // Placeholder behavior: just log and force refresh using current filters
+    // You can replace these with real mappings once you define them.
+    if (preset === "missing_data") {
+      // Example: no-op until we implement backend preset logic
+    } else if (preset === "outliers") {
+      // no-op
+    } else if (preset === "high_value") {
+      // no-op
+    }
+
+    // Keep UI consistent
+    setPendingFilters(nextFilters);
+
+    // IMMEDIATE APPLY: bypass debounce
+    setFiltersState(nextFilters);
+    fetchInsightsWithFilters(nextFilters);
   };
 
   // -----------------------------------------------------
   // MAIN UI
   // -----------------------------------------------------
   return (
-    <div className="flex w-full h-full">
+    <div className="flex w-full min-h-screen">
       {/* LEFT FILTER PANEL */}
       {anyFilters && (
         <aside className="hidden lg:flex flex-col w-64 border-r border-slate-800 bg-slate-900/40 p-4 overflow-y-auto">
           <FilterPanel
-            filters={filters}
-            selected={filtersState}
-            onChange={handleFilterChange}
-            onClear={() => setFiltersState({})}
-          />
+  filters={filters}
+  selected={pendingFilters}
+  onChange={handleFilterChange}
+  onClear={clearAll}
+  onApply={() => {
+    setFiltersState(pendingFilters);
+    fetchInsightsWithFilters(pendingFilters);
+  }}
+  onApplyPreset={(preset) => {
+    console.log("Preset Clicked:", preset);
+    applyPreset(preset);
+  }}
+/>
         </aside>
       )}
 
       {/* MAIN CONTENT */}
       <main className="flex-1 overflow-y-auto px-6 py-6 space-y-10">
-
         {/* Header */}
         <header className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-50">
-              File Insights
-            </h1>
+            <h1 className="text-2xl font-semibold text-slate-50">File Insights</h1>
             <p className="mt-1 text-xs font-mono text-slate-400">
               File ID: <span className="text-cyan-300">{fileId}</span>
             </p>
@@ -156,6 +219,7 @@ export default function FileInsightsPage() {
             onClick={fetchInsights}
             disabled={loading}
             className="rounded-md border border-slate-700 px-3 py-1 text-xs text-slate-100 hover:bg-slate-800 disabled:opacity-60"
+            type="button"
           >
             {loading ? "Refreshing…" : "Refresh"}
           </button>
@@ -164,9 +228,7 @@ export default function FileInsightsPage() {
         {/* KPI Cards */}
         {kpis && (
           <section>
-            <h2 className="mb-3 text-sm font-semibold text-slate-300">
-              Key Metrics
-            </h2>
+            <h2 className="mb-3 text-sm font-semibold text-slate-300">Key Metrics</h2>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {Object.entries(kpis).map(([label, value]) => (
@@ -175,9 +237,7 @@ export default function FileInsightsPage() {
                   className="rounded-xl border border-slate-800 bg-slate-900/60 p-4"
                 >
                   <p className="text-xs font-medium text-slate-400">{label}</p>
-                  <p className="mt-2 text-2xl font-semibold text-cyan-300">
-                    {value}
-                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-cyan-300">{value}</p>
                 </div>
               ))}
             </div>
@@ -226,7 +286,7 @@ export default function FileInsightsPage() {
           </section>
         )}
 
-        {/* AI Insights Panel — FINAL FIXED VERSION */}
+        {/* AI Insights Panel */}
         <AIWidget
           fileId={fileId}
           initialSummary={(insights as any).ai_summary ?? null}
