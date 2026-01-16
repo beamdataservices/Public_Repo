@@ -25,12 +25,12 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-950">
-      <div className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900/80 p-8 shadow-xl">
-        <h1 className="mb-2 text-2xl font-semibold text-white">
+    <main className="flex min-h-screen items-center justify-center bg-[var(--bg-main)]">
+      <div className="w-full max-w-md rounded-xl border border-[var(--border)] bg-[color:var(--bg-panel)] p-8 shadow-xl">
+        <h1 className="mb-2 text-2xl font-semibold text-[var(--text-main)]">
           Create your tenant
         </h1>
-        <p className="mb-6 text-sm text-slate-400">
+        <p className="mb-6 text-sm text-[var(--text-muted)]">
           Register a new tenant and your admin account.
         </p>
 
@@ -43,7 +43,7 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Tenant name */}
           <div>
-            <label className="mb-1 block text-sm text-slate-200">
+            <label className="mb-1 block text-sm text-[var(--text-main)]">
               Tenant name
             </label>
             <input
@@ -51,13 +51,13 @@ export default function RegisterPage() {
               required
               value={tenantName}
               onChange={(e) => setTenantName(e.target.value)}
-              className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-50 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+              className="w-full rounded-md border border-[var(--border)] bg-[var(--bg-main)] px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
             />
           </div>
 
           {/* Email */}
           <div>
-            <label className="mb-1 block text-sm text-slate-200">
+            <label className="mb-1 block text-sm text-[var(--text-main)]">
               Admin email
             </label>
             <input
@@ -65,13 +65,13 @@ export default function RegisterPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-50 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+              className="w-full rounded-md border border-[var(--border)] bg-[var(--bg-main)] px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
             />
           </div>
 
           {/* Password */}
           <div>
-            <label className="mb-1 block text-sm text-slate-200">
+            <label className="mb-1 block text-sm text-[var(--text-main)]">
               Password
             </label>
             <input
@@ -79,7 +79,7 @@ export default function RegisterPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-50 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+              className="w-full rounded-md border border-[var(--border)] bg-[var(--bg-main)] px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
             />
           </div>
 
@@ -87,13 +87,13 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-2 w-full rounded-md bg-cyan-500 px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-cyan-400 disabled:opacity-60"
+            className="mt-2 w-full rounded-md bg-cyan-500 px-3 py-2 text-sm font-semibold text-[var(--dark-text)] hover:bg-cyan-400 disabled:opacity-60"
           >
             {loading ? "Creating tenant..." : "Create tenant"}
           </button>
         </form>
 
-        <p className="mt-4 text-center text-xs text-slate-400">
+        <p className="mt-4 text-center text-xs text-[var(--text-muted)]">
           Already have an account?{" "}
           <Link href="/login" className="text-cyan-300 hover:underline">
             Sign in

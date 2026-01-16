@@ -50,14 +50,14 @@ export default function AIInsights({ fileId, initialSummary, token }: AIInsights
   return (
     <div className="space-y-3">
       <div className="flex items-start justify-between gap-3">
-        <div className="text-xs text-slate-400 leading-snug">
+        <div className="text-xs text-[var(--text-muted)] leading-snug">
           Uses a small sample of your dataset to generate a summary.
         </div>
 
         <button
           onClick={regenerate}
           disabled={loading}
-          className="rounded-md border border-slate-700 px-3 py-1 text-xs hover:bg-slate-800 disabled:opacity-60 shrink-0"
+          className="rounded-md border border-[var(--border)] px-3 py-1 text-xs hover:bg-[color:var(--bg-panel-2)] disabled:opacity-60 shrink-0"
           type="button"
         >
           {loading ? "Generating…" : "Regenerate"}
@@ -69,7 +69,7 @@ export default function AIInsights({ fileId, initialSummary, token }: AIInsights
         className={[
           "rounded-2xl border",
           "border-cyan-500/30",
-          "bg-gradient-to-b from-cyan-500/10 to-slate-900/40",
+          "bg-gradient-to-b from-cyan-500/10 to-[color:var(--bg-panel-2)]",
           "shadow-inner",
         ].join(" ")}
       >
@@ -85,7 +85,7 @@ export default function AIInsights({ fileId, initialSummary, token }: AIInsights
           <div className="max-h-[45vh] overflow-y-auto pr-2">
             <div
   className="
-    text-sm text-slate-300 whitespace-pre-wrap
+    text-sm text-[var(--text-main)] whitespace-pre-wrap
     max-h-[45vh] overflow-y-auto pr-2
     scrollbar-ai
   "

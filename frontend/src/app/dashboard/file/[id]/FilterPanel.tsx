@@ -23,7 +23,7 @@ export default function FilterPanel({
 
   if (filterKeys.length === 0) {
     return (
-      <div className="text-xs text-slate-500 px-2">
+      <div className="text-xs text-[var(--text-muted)] px-2">
         No filters detected in this dataset.
       </div>
     );
@@ -33,13 +33,13 @@ export default function FilterPanel({
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-slate-200">Filters</h2>
+        <h2 className="text-sm font-semibold text-[var(--text-main)]">Filters</h2>
 
         <div className="flex items-center gap-2">
           {onApply && (
             <button
               onClick={onApply}
-              className="text-xs rounded-md border border-slate-700 px-2 py-1 text-slate-200 hover:bg-slate-800"
+              className="text-xs rounded-md border border-[var(--border)] px-2 py-1 text-[var(--text-main)] hover:bg-[color:var(--bg-panel-2)]"
               type="button"
             >
               Apply
@@ -48,7 +48,7 @@ export default function FilterPanel({
 
           <button
             onClick={onClear}
-            className="text-xs text-slate-400 hover:text-slate-200"
+            className="text-xs text-[var(--text-muted)] hover:text-[var(--text-main)]"
             type="button"
           >
             Clear All
@@ -59,12 +59,12 @@ export default function FilterPanel({
       {/* Filter Inputs */}
       {filterKeys.map((col) => (
         <div key={col} className="flex flex-col gap-1">
-          <label className="text-[11px] uppercase tracking-wide text-slate-400">
+          <label className="text-[11px] uppercase tracking-wide text-[var(--text-muted)]">
             {col}
           </label>
 
           <select
-            className="w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm text-slate-100"
+            className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-panel)] px-2 py-1.5 text-sm text-[var(--text-main)]"
             value={selected[col] ?? ""}
             onChange={(e) => onChange(col, e.target.value || null)}
           >
@@ -79,18 +79,18 @@ export default function FilterPanel({
       ))}
 
       {/* Presets */}
-      <div className="border-t border-slate-800 pt-4">
-        <h2 className="text-slate-200 text-base font-semibold mb-2">
+      <div className="border-t border-[var(--border)] pt-4">
+        <h2 className="text-[var(--text-main)] text-base font-semibold mb-2">
           Preset Filters
         </h2>
 
-        <p className="text-xs text-slate-400 mb-3">
+        <p className="text-xs text-[var(--text-muted)] mb-3">
           (Your team can configure global or saved filters here.)
         </p>
 
         <div className="space-y-2">
           <button
-            className="w-full bg-slate-800 rounded px-3 py-2 text-xs hover:bg-slate-700"
+            className="w-full bg-[color:var(--bg-panel-2)] rounded px-3 py-2 text-xs hover:bg-[color:var(--bg-panel-2)]"
             type="button"
             onClick={() => onApplyPreset?.("high_value")}
           >
@@ -98,7 +98,7 @@ export default function FilterPanel({
           </button>
 
           <button
-            className="w-full bg-slate-800 rounded px-3 py-2 text-xs hover:bg-slate-700"
+            className="w-full bg-[color:var(--bg-panel-2)] rounded px-3 py-2 text-xs hover:bg-[color:var(--bg-panel-2)]"
             type="button"
             onClick={() => onApplyPreset?.("missing_data")}
           >
@@ -106,7 +106,7 @@ export default function FilterPanel({
           </button>
 
           <button
-            className="w-full bg-slate-800 rounded px-3 py-2 text-xs hover:bg-slate-700"
+            className="w-full bg-[color:var(--bg-panel-2)] rounded px-3 py-2 text-xs hover:bg-[color:var(--bg-panel-2)]"
             type="button"
             onClick={() => onApplyPreset?.("outliers")}
           >

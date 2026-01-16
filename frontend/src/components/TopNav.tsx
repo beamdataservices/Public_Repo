@@ -17,7 +17,7 @@ export default function TopNav() {
 
   return (
     <header
-      className="flex items-center justify-between px-6 py-4"
+      className="flex w-full items-center justify-between px-6 py-4"
       style={{
         background: "var(--header-bg)",
         borderBottom: `4px solid var(--header-border)`,

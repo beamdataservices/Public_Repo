@@ -16,17 +16,17 @@ export default function HomePage() {
   }, [loading, user, router]);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-950">
+    <main className="flex min-h-screen items-center justify-center bg-[var(--bg-main)]">
       <div className="text-center">
-        <h1 className="text-2xl font-semibold text-slate-100">
+        <h1 className="text-2xl font-semibold text-[var(--text-main)]">
           BEAM Analytics
         </h1>
 
-        <p className="mt-2 text-slate-400">
+        <p className="mt-2 text-[var(--text-muted)]">
           Redirecting you to your experience...
         </p>
 
-        <p className="mt-4 text-xs text-slate-600">
+        <p className="mt-4 text-xs text-[var(--text-muted)]">
           If nothing happens, click{" "}
           <a href="/login" className="text-cyan-300 underline">
             here

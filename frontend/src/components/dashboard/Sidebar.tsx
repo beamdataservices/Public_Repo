@@ -14,12 +14,12 @@ export default function Sidebar({
     <aside
       className={`${
         open ? "w-80" : "w-10"
-      } bg-slate-900 border-r border-slate-800 transition-all duration-300 flex flex-col`}
+      } bg-[color:var(--bg-panel)] border-r border-[var(--border)] transition-all duration-300 flex flex-col`}
     >
       {/* Toggle Button */}
       <button
         onClick={() => setOpen(!open)}
-        className="text-slate-400 hover:text-slate-200 p-2 border-b border-slate-800"
+        className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-2 border-b border-[var(--border)]"
       >
         {open ? "<<<" : ">>>"}
       </button>

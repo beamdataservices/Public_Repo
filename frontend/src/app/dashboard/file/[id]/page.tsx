@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import Plot from "@/components/PlotNoTypes";
 import FilterPanel from "./FilterPanel";
 import AIWidget from "./AIWidget";
@@ -23,6 +24,7 @@ export default function FileInsightsPage() {
   const params = useParams<{ id: string }>();
   const fileId = params.id;
   const { tokens } = useAuth();
+  const { theme } = useTheme();
 
   const [insights, setInsights] = useState<InsightsResponse | null>(null);
 
@@ -36,6 +38,25 @@ export default function FileInsightsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const hasToken = !!tokens?.accessToken;
+
+  const plotTheme = useMemo(() => {
+    if (typeof document === "undefined") {
+      return {
+        fontColor: "#e2e8f0",
+        gridColor: "rgba(226, 232, 240, 0.12)",
+      };
+    }
+
+    const styles = getComputedStyle(document.documentElement);
+    const textMain =
+      styles.getPropertyValue("--text-main").trim() || "#e2e8f0";
+    const gridColor =
+      theme === "dark"
+        ? "rgba(226, 232, 240, 0.12)"
+        : "rgba(15, 23, 42, 0.12)";
+
+    return { fontColor: textMain, gridColor };
+  }, [theme]);
 
   // -----------------------------------------------------
   // Fetch Insights with explicit filters (used for presets)
@@ -113,7 +134,7 @@ export default function FileInsightsPage() {
 
   if (loading && !insights) {
     return (
-      <div className="px-6 py-6 text-sm text-slate-400">
+      <div className="px-6 py-6 text-sm text-[var(--text-muted)]">
         Loading insights…
       </div>
     );
@@ -129,7 +150,7 @@ export default function FileInsightsPage() {
 
   if (!insights) {
     return (
-      <div className="px-6 py-6 text-sm text-slate-400">No insights available.</div>
+      <div className="px-6 py-6 text-sm text-[var(--text-muted)]">No insights available.</div>
     );
   }
 
@@ -186,21 +207,21 @@ export default function FileInsightsPage() {
     <div className="flex w-full min-h-screen">
       {/* LEFT FILTER PANEL */}
       {anyFilters && (
-        <aside className="hidden lg:flex flex-col w-64 border-r border-slate-800 bg-slate-900/40 p-4 overflow-y-auto">
+        <aside className="hidden lg:flex flex-col w-64 border-r border-[var(--border)] bg-[color:var(--bg-panel)] p-4 overflow-y-auto">
           <FilterPanel
-  filters={filters}
-  selected={pendingFilters}
-  onChange={handleFilterChange}
-  onClear={clearAll}
-  onApply={() => {
-    setFiltersState(pendingFilters);
-    fetchInsightsWithFilters(pendingFilters);
-  }}
-  onApplyPreset={(preset) => {
-    console.log("Preset Clicked:", preset);
-    applyPreset(preset);
-  }}
-/>
+            filters={filters}
+            selected={pendingFilters}
+            onChange={handleFilterChange}
+            onClear={clearAll}
+            onApply={() => {
+              setFiltersState(pendingFilters);
+              fetchInsightsWithFilters(pendingFilters);
+            }}
+            onApplyPreset={(preset) => {
+              console.log("Preset Clicked:", preset);
+              applyPreset(preset);
+            }}
+          />
         </aside>
       )}
 
@@ -209,8 +230,8 @@ export default function FileInsightsPage() {
         {/* Header */}
         <header className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-50">File Insights</h1>
-            <p className="mt-1 text-xs font-mono text-slate-400">
+            <h1 className="text-2xl font-semibold text-[var(--text-main)]">File Insights</h1>
+            <p className="mt-1 text-xs font-mono text-[var(--text-muted)]">
               File ID: <span className="text-cyan-300">{fileId}</span>
             </p>
           </div>
@@ -218,7 +239,7 @@ export default function FileInsightsPage() {
           <button
             onClick={fetchInsights}
             disabled={loading}
-            className="rounded-md border border-slate-700 px-3 py-1 text-xs text-slate-100 hover:bg-slate-800 disabled:opacity-60"
+            className="rounded-md border border-[var(--border)] px-3 py-1 text-xs text-[var(--text-main)] hover:bg-[color:var(--bg-panel-2)] disabled:opacity-60"
             type="button"
           >
             {loading ? "Refreshing…" : "Refresh"}
@@ -228,15 +249,15 @@ export default function FileInsightsPage() {
         {/* KPI Cards */}
         {kpis && (
           <section>
-            <h2 className="mb-3 text-sm font-semibold text-slate-300">Key Metrics</h2>
+            <h2 className="mb-3 text-sm font-semibold text-[var(--text-main)]">Key Metrics</h2>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {Object.entries(kpis).map(([label, value]) => (
                 <div
                   key={label}
-                  className="rounded-xl border border-slate-800 bg-slate-900/60 p-4"
+                  className="rounded-xl border border-[var(--border)] bg-[color:var(--bg-panel)] p-4"
                 >
-                  <p className="text-xs font-medium text-slate-400">{label}</p>
+                  <p className="text-xs font-medium text-[var(--text-muted)]">{label}</p>
                   <p className="mt-2 text-2xl font-semibold text-cyan-300">{value}</p>
                 </div>
               ))}
@@ -257,9 +278,9 @@ export default function FileInsightsPage() {
             {Object.entries(charts).map(([name, fig]) => (
               <div
                 key={name}
-                className="rounded-xl border border-slate-800 bg-slate-900/60 p-5"
+                className="rounded-xl border border-[var(--border)] bg-[color:var(--bg-panel)] p-5"
               >
-                <h2 className="mb-3 text-sm font-semibold text-slate-200">
+                <h2 className="mb-3 text-sm font-semibold text-[var(--text-main)]">
                   {name.replace(/_/g, " ")}
                 </h2>
 
@@ -271,7 +292,20 @@ export default function FileInsightsPage() {
                       autosize: true,
                       paper_bgcolor: "rgba(0,0,0,0)",
                       plot_bgcolor: "rgba(0,0,0,0)",
-                      font: { color: "#e2e8f0" },
+                      font: {
+                        ...(fig.layout?.font || {}),
+                        color: plotTheme.fontColor,
+                      },
+                      xaxis: {
+                        ...(fig.layout?.xaxis || {}),
+                        gridcolor: plotTheme.gridColor,
+                        zerolinecolor: plotTheme.gridColor,
+                      },
+                      yaxis: {
+                        ...(fig.layout?.yaxis || {}),
+                        gridcolor: plotTheme.gridColor,
+                        zerolinecolor: plotTheme.gridColor,
+                      },
                     }}
                     config={{
                       responsive: true,

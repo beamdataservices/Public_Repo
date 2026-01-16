@@ -17,7 +17,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (loading || (!user && typeof window !== "undefined")) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-200">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-main)] text-[var(--text-main)]">
         Checking authentication...
       </div>
     );

@@ -17,7 +17,7 @@ export default function SidebarContent() {
   // Authentication gating
   if (loading) {
     return (
-      <div className="px-4 py-2 text-xs text-slate-500">
+      <div className="px-4 py-2 text-xs text-[var(--text-muted)]">
         Checking authentication...
       </div>
     );
@@ -58,8 +58,8 @@ export default function SidebarContent() {
     <div className="flex-1 overflow-y-auto px-4 py-3 space-y-6">
 
       {/* Upload Section */}
-      <section className="border border-slate-800 bg-slate-900/60 p-4 rounded-lg">
-        <h2 className="font-semibold text-slate-200 text-sm mb-2">
+      <section className="border border-[var(--border)] bg-[color:var(--bg-panel)] p-4 rounded-lg">
+        <h2 className="font-semibold text-[var(--text-main)] text-sm mb-2">
           Upload a File
         </h2>
 
@@ -68,13 +68,13 @@ export default function SidebarContent() {
             type="file"
             accept=".csv,.xlsx"
             onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
-            className="block w-full text-sm text-slate-100 file:bg-cyan-500 file:text-slate-900 file:rounded file:px-3 file:py-1"
+            className="block w-full text-sm text-[var(--text-main)] file:bg-cyan-500 file:text-[var(--dark-text)] file:rounded file:px-3 file:py-1"
           />
 
           <button
             type="submit"
             disabled={!selectedFile || uploading}
-            className="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-semibold rounded py-2 text-sm disabled:opacity-50"
+            className="w-full bg-cyan-500 hover:bg-cyan-400 text-[var(--dark-text)] font-semibold rounded py-2 text-sm disabled:opacity-50"
           >
             {uploading ? "Uploading..." : "Upload"}
           </button>
