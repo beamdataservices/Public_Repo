@@ -1,17 +1,18 @@
 @import "tailwindcss";
 
 /* =========================================================
-   THEME TOKENS (Partner palette + app mapping)
+   BEAM THEME TOKENS (Partner palette)
+   Default = LIGHT (so login + app start light)
    ========================================================= */
 
 :root {
-  /* Partner palette */
+  /* Brand palette */
   --navy: #002b5b;
   --navy-2: #001f3f;
   --teal: #00a3e0;
   --green: #00c897;
 
-  /* Light-mode defaults */
+  /* LIGHT THEME (default) */
   --bg-main: #ffffff;
   --bg-panel: #f2f4f8;
   --bg-panel-2: #e9edf5;
@@ -20,22 +21,36 @@
   --text-muted: #6b7280;
 
   --border: rgba(0, 43, 91, 0.18);
+  --shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+
+  --header-bg: var(--navy);
+  --header-border: var(--teal);
+  --header-text: #ffffff;
   --accent: var(--teal);
 }
 
-html[data-theme="dark"] {
+/* DARK THEME OVERRIDES */
+:root[data-theme="dark"] {
   --bg-main: #0a0f1d;
   --bg-panel: #0b1221;
   --bg-panel-2: #0a1020;
 
-  --text-main: #ffffff;
-  --text-muted: rgba(255, 255, 255, 0.72);
+  --text-main: #e2e8f0;
+  --text-muted: rgba(226, 232, 240, 0.72);
 
-  --border: rgba(0, 163, 224, 0.25);
+  --border: rgba(0, 163, 224, 0.28);
+  --shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+
+  --header-bg: var(--navy);
+  --header-border: var(--teal);
+  --header-text: #ffffff;
   --accent: var(--teal);
 }
 
-/* Base page styling */
+/* =========================================================
+   Base
+   ========================================================= */
+
 html,
 body {
   height: 100%;
@@ -47,17 +62,35 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Helpful global “surface” defaults */
-.beam-panel {
+/* =========================================================
+   Reusable surfaces (use these to avoid hard-coded slates)
+   ========================================================= */
+
+.bg-app {
+  background: var(--bg-main);
+  color: var(--text-main);
+}
+
+.surface {
   background: var(--bg-panel);
   border: 1px solid var(--border);
+  box-shadow: var(--shadow);
   border-radius: 16px;
 }
 
-.beam-panel-strong {
+.surface-2 {
   background: var(--bg-panel-2);
   border: 1px solid var(--border);
+  box-shadow: var(--shadow);
   border-radius: 16px;
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.border-theme {
+  border-color: var(--border);
 }
 
 /* =========================================================
@@ -66,11 +99,7 @@ body {
 
 * {
   scrollbar-width: thin; /* Firefox */
-  scrollbar-color: rgba(0, 0, 0, 0.28) transparent;
-}
-
-html[data-theme="dark"] * {
-  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+  scrollbar-color: rgba(120, 120, 120, 0.35) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -82,20 +111,35 @@ html[data-theme="dark"] * {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.22);
+  background: rgba(120, 120, 120, 0.28);
   border-radius: 9999px;
   border: 3px solid transparent;
   background-clip: content-box;
 }
 
-html[data-theme="dark"] *::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.22);
-}
-
 *::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.38);
+  background: rgba(120, 120, 120, 0.42);
+  border: 3px solid transparent;
+  background-clip: content-box;
 }
 
-html[data-theme="dark"] *::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.38);
+/* Optional utility (if you want to apply only on specific containers) */
+.scrollbar-ai {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 120, 120, 0.35) transparent;
+}
+
+.scrollbar-ai::-webkit-scrollbar {
+  width: 10px;
+}
+
+.scrollbar-ai::-webkit-scrollbar-thumb {
+  background: rgba(120, 120, 120, 0.28);
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+.scrollbar-ai::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 120, 120, 0.42);
 }
