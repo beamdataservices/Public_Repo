@@ -20,6 +20,7 @@ export default function SidebarFiles({ reloadFlag }: { reloadFlag: number }) {
   const [files, setFiles] = useState<FileSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const pathname = usePathname();
   const { tokens } = useAuth();
@@ -55,6 +56,45 @@ export default function SidebarFiles({ reloadFlag }: { reloadFlag: number }) {
     }
   }
 
+  async function downloadFile(file: FileSummary) {
+    if (!tokens?.accessToken) {
+      setError("Not authenticated");
+      return;
+    }
+
+    try {
+      setError(null);
+      setDownloadingId(file.id);
+
+      // 🔥 Keep consistent with ACA trailing slash behavior
+      const res = await fetch(`${API_BASE_URL}/api/files/${file.id}/download/`, {
+        headers: {
+          Authorization: `Bearer ${tokens.accessToken}`,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error(`Download failed: ${res.status}`);
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = file.original_name || `file-${file.id}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setError(err?.message || "Download failed");
+    } finally {
+      setDownloadingId(null);
+    }
+  }
+
   useEffect(() => {
     loadFiles();
   }, [tokens?.accessToken, reloadFlag]); // 🔥 reload on upload
@@ -68,7 +108,9 @@ export default function SidebarFiles({ reloadFlag }: { reloadFlag: number }) {
       </div>
 
       {loading && (
-        <div className="px-4 py-2 text-xs text-[var(--text-muted)]">Loading files…</div>
+        <div className="px-4 py-2 text-xs text-[var(--text-muted)]">
+          Loading files…
+        </div>
       )}
 
       {error && !loading && (
@@ -93,27 +135,54 @@ export default function SidebarFiles({ reloadFlag }: { reloadFlag: number }) {
             minute: "2-digit",
           });
 
+          const isDownloading = downloadingId === file.id;
+
           return (
-            <Link
+            <div
               key={file.id}
-              href={href}
               className={[
-                "block rounded-md px-2 py-2 text-sm",
+                "group rounded-md px-2 py-2 text-sm",
                 "border border-transparent",
                 "hover:bg-[color:var(--bg-panel-2)] hover:border-[var(--border)]",
+                "flex items-start gap-2",
                 isActive
-                  ? "bg-[color:var(--bg-panel-2)] border-sky-500 text-sky-300"
+                  ? "bg-[color:var(--bg-panel-2)] border-[var(--accent)] text-[var(--text-main)]"
                   : "text-[var(--text-main)]",
               ].join(" ")}
             >
-              <div className="truncate">{file.original_name}</div>
-              <div className="mt-0.5 text-[11px] text-[var(--text-muted)] flex justify-between">
-                <span>{file.status}</span>
-                <span>
-                  {dateLabel} • {timeLabel}
-                </span>
-              </div>
-            </Link>
+              <Link href={href} className="flex-1 min-w-0">
+                <div className="truncate">{file.original_name}</div>
+                <div className="mt-0.5 text-[11px] text-[var(--text-muted)] flex justify-between">
+                  <span>{file.status}</span>
+                  <span>
+                    {dateLabel} • {timeLabel}
+                  </span>
+                </div>
+              </Link>
+
+              <button
+                type="button"
+                className={[
+                  "shrink-0 mt-0.5",
+                  "opacity-0 group-hover:opacity-100 transition-opacity",
+                  "text-xs px-2 py-1 rounded",
+                  "border border-[var(--border)]",
+                  "hover:bg-[color:var(--bg-panel)]",
+                  "text-[var(--text-main)]",
+                  isDownloading ? "opacity-100 cursor-wait" : "",
+                ].join(" ")}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!isDownloading) downloadFile(file);
+                }}
+                title={isDownloading ? "Downloading…" : "Download"}
+                aria-label={`Download ${file.original_name}`}
+                disabled={isDownloading}
+              >
+                {isDownloading ? "…" : "⬇"}
+              </button>
+            </div>
           );
         })}
       </nav>
