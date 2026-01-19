@@ -102,13 +102,13 @@ export default function SidebarFiles({ reloadFlag }: { reloadFlag: number }) {
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="px-4 py-2 flex items-center justify-between">
-        <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">
+        <span className="text-xs font-semibold text-(--text-muted) uppercase tracking-wide">
           Files
         </span>
       </div>
 
       {loading && (
-        <div className="px-4 py-2 text-xs text-[var(--text-muted)]">
+        <div className="px-4 py-2 text-xs text-(--text-muted)">
           Loading files…
         </div>
       )}
@@ -118,7 +118,7 @@ export default function SidebarFiles({ reloadFlag }: { reloadFlag: number }) {
       )}
 
       {!loading && !error && files.length === 0 && (
-        <div className="px-4 py-2 text-xs text-[var(--text-muted)]">
+        <div className="px-4 py-2 text-xs text-(--text-muted)">
           No files uploaded yet.
         </div>
       )}
@@ -143,16 +143,16 @@ export default function SidebarFiles({ reloadFlag }: { reloadFlag: number }) {
               className={[
                 "group rounded-md px-2 py-2 text-sm",
                 "border border-transparent",
-                "hover:bg-[color:var(--bg-panel-2)] hover:border-[var(--border)]",
+                "hover:bg-(--bg-panel-2) hover:border-(--border)",
                 "flex items-start gap-2",
                 isActive
-                  ? "bg-[color:var(--bg-panel-2)] border-[var(--accent)] text-[var(--text-main)]"
-                  : "text-[var(--text-main)]",
+                  ? "bg-(--bg-panel-2) border-(--accent) text-(--text-main)"
+                  : "text-(--text-main)",
               ].join(" ")}
             >
               <Link href={href} className="flex-1 min-w-0">
                 <div className="truncate">{file.original_name}</div>
-                <div className="mt-0.5 text-[11px] text-[var(--text-muted)] flex justify-between">
+                <div className="mt-0.5 text-[11px] text-(--text-muted) flex justify-between">
                   <span>{file.status}</span>
                   <span>
                     {dateLabel} • {timeLabel}
@@ -166,9 +166,9 @@ export default function SidebarFiles({ reloadFlag }: { reloadFlag: number }) {
                   "shrink-0 mt-0.5",
                   "opacity-0 group-hover:opacity-100 transition-opacity",
                   "text-xs px-2 py-1 rounded",
-                  "border border-[var(--border)]",
-                  "hover:bg-[color:var(--bg-panel)]",
-                  "text-[var(--text-main)]",
+                  "border border-(--border)",
+                  "hover:bg-(--bg-panel)",
+                  "text-(--text-main)",
                   isDownloading ? "opacity-100 cursor-wait" : "",
                 ].join(" ")}
                 onClick={(e) => {
