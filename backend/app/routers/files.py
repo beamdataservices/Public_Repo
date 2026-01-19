@@ -1,9 +1,12 @@
 # backend/app/routers/files.py
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List
 from uuid import uuid4, UUID
 from datetime import datetime
+import re
+from urllib.parse import quote
 
 from azure.storage.blob import BlobServiceClient
 from sqlalchemy.orm import Session
@@ -35,7 +38,7 @@ class FileOut(BaseModel):
 async def upload_file(
     uploaded_file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),   # <-- FIXED
+    user: User = Depends(get_current_user),
 ):
     if uploaded_file.content_type not in (
         "text/csv",
@@ -78,7 +81,7 @@ async def upload_file(
 @router.get("/", response_model=List[FileOut])
 def list_files(
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),   # <-- FIXED
+    user: User = Depends(get_current_user),
 ):
     files = (
         db.query(FileModel)
@@ -93,7 +96,7 @@ def list_files(
 def get_file(
     file_id: str,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),   # <-- FIXED
+    user: User = Depends(get_current_user),
 ):
     file = (
         db.query(FileModel)
@@ -107,3 +110,70 @@ def get_file(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
 
     return file
+
+
+def _content_disposition_attachment(filename: str) -> str:
+    """Build a safe Content-Disposition header value with RFC 5987 support.
+
+    We include both:
+      - filename="..." (ASCII-ish fallback)
+      - filename*=UTF-8''... (RFC 5987, full UTF-8)
+
+    This is widely supported by modern browsers and should not break older ones.
+    """
+    name = filename or "download"
+    # Strip CR/LF and quotes to avoid header injection / broken headers.
+    name = re.sub(r"[\r\n]", " ", name).replace('"', "")
+
+    # ASCII fallback: keep common safe chars, replace others with underscore.
+    fallback = re.sub(r"[^A-Za-z0-9._ -]", "_", name).strip() or "download"
+
+    # RFC 5987 encoding for UTF-8 filenames
+    encoded = quote(name, safe="")
+
+    return f"attachment; filename=\"{fallback}\"; filename*=UTF-8''{encoded}"
+
+
+@router.get("/{file_id}/download")
+def download_file(
+    file_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    file = (
+        db.query(FileModel)
+        .filter(
+            FileModel.id == file_id,
+            FileModel.tenant_id == user.tenant_id,
+        )
+        .first()
+    )
+    if not file:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+
+    try:
+        blob_client = container_client.get_blob_client(file.blob_path)
+        downloader = blob_client.download_blob()
+
+        def stream():
+            for chunk in downloader.chunks():
+                yield chunk
+
+        name_lc = (file.original_name or "").lower()
+        if name_lc.endswith(".csv"):
+            media_type = "text/csv"
+        elif name_lc.endswith(".xlsx"):
+            media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        elif name_lc.endswith(".xls"):
+            media_type = "application/vnd.ms-excel"
+        else:
+            media_type = "application/octet-stream"
+
+        headers = {
+            "Content-Disposition": _content_disposition_attachment(file.original_name),
+        }
+
+        return StreamingResponse(stream(), media_type=media_type, headers=headers)
+
+    except Exception as ex:
+        raise HTTPException(status_code=500, detail=f"Download failed: {ex}")
