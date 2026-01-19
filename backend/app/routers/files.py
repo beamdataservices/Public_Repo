@@ -135,6 +135,7 @@ def _content_disposition_attachment(filename: str) -> str:
 
 
 @router.get("/{file_id}/download")
+@router.get("/{file_id}/download/")
 def download_file(
     file_id: str,
     db: Session = Depends(get_db),

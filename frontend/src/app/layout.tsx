@@ -5,6 +5,9 @@ import ClientLayout from "./client-layout";
 export const metadata: Metadata = {
   title: "BEAM Analytics",
   description: "Main Dashboard",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -28,7 +28,7 @@ export default function TopNav() {
       <div className="flex items-center gap-3">
         <div className="h-10 w-10 rounded-lg flex items-center justify-center"
              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.14)" }}>
-          <Image src="/favicon.ico" alt="BEAM" width={20} height={20} />
+          <Image src="/favicon.png" alt="BEAM" width={20} height={20} priority />
         </div>
 
         <div className="leading-tight">
