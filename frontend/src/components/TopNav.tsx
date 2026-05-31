@@ -158,6 +158,19 @@ export default function TopNav() {
               <div className="font-medium">{user.email}</div>
             </div>
 
+            <Link
+              href="/dashboard"
+              className="rounded-md px-3 py-2 text-xs font-medium"
+              style={{
+                border: "1px solid rgba(255,255,255,0.25)",
+                background: "rgba(0,0,0,0.15)",
+              }}
+              aria-label="Home"
+              title="Home"
+            >
+              Home
+            </Link>
+
             {/* Settings button */}
             <button
               type="button"

@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useAuth } from "@/context/AuthContext";
+import { notifyFilesChanged } from "@/lib/file-events";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
@@ -59,6 +60,7 @@ export default function RecycleBinPage() {
       });
       if (!res.ok) throw new Error("Could not restore file.");
       setFiles((current) => current.filter((item) => item.id !== file.id));
+      notifyFilesChanged();
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not restore file.");

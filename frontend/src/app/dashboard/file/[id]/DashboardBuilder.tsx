@@ -48,6 +48,14 @@ type PlotFigure = {
   layout?: Record<string, unknown>;
 };
 
+function reportSnapshot(name: string, charts: ChartConfig[], sheetName?: string | null) {
+  return JSON.stringify({
+    name: name.trim(),
+    charts,
+    sheet_name: sheetName ?? null,
+  });
+}
+
 // ── Chart type metadata ────────────────────────────────────────────────────────
 
 type ChartMeta = {
@@ -689,6 +697,7 @@ export default function DashboardBuilder({
   const [reportError, setReportError] = useState<string | null>(null);
   const [reportName, setReportName] = useState("");
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
+  const [currentReportSnapshot, setCurrentReportSnapshot] = useState<string | null>(null);
   const [savingReport, setSavingReport] = useState(false);
 
   const numCols = cols.filter((c) => c.inferred_type === "numeric");
@@ -772,6 +781,8 @@ export default function DashboardBuilder({
     setRendered({});
     setRunError(null);
     setCurrentReportId(null);
+    setCurrentReportSnapshot(null);
+    setReportName("");
   }, [sheetName]);
 
   // ── Chart management ─────────────────────────────────────────────────────────
@@ -891,6 +902,17 @@ export default function DashboardBuilder({
       }
 
       const updating = mode === "save" && currentReportId;
+      const duplicate = reports.find(
+        (report) =>
+          report.name.trim().toLowerCase() === name.toLowerCase() &&
+          (!updating || report.id !== currentReportId)
+      );
+      if (duplicate) {
+        setReportError(
+          `A saved report named "${name}" already exists. Choose a different name or load that report and overwrite it.`
+        );
+        return;
+      }
       setSavingReport(true);
       try {
         const res = await fetch(
@@ -918,6 +940,7 @@ export default function DashboardBuilder({
         const saved = (await res.json()) as SavedReport;
         setCurrentReportId(saved.id);
         setReportName(saved.name);
+        setCurrentReportSnapshot(reportSnapshot(saved.name, saved.chart_configs, saved.sheet_name));
         setReportError(null);
         await fetchReports();
       } catch (err: unknown) {
@@ -926,7 +949,7 @@ export default function DashboardBuilder({
         setSavingReport(false);
       }
     },
-    [charts, currentReportId, fetchReports, fileId, reportName, sheetName, token]
+    [charts, currentReportId, fetchReports, fileId, reportName, reports, sheetName, token]
   );
 
   const loadReport = useCallback(
@@ -950,6 +973,7 @@ export default function DashboardBuilder({
         setRendered({});
         setCurrentReportId(report.id);
         setReportName(report.name);
+        setCurrentReportSnapshot(reportSnapshot(report.name, nextCharts, report.sheet_name));
         setReportError(null);
         const validIds = nextCharts
           .filter((c) => !validate(c, numCols.map((n) => n.name)))
@@ -974,6 +998,7 @@ export default function DashboardBuilder({
         throw new Error(text || "Could not delete report");
       }
       setCurrentReportId(null);
+      setCurrentReportSnapshot(null);
       setReportName("");
       setReportError(null);
       await fetchReports();
@@ -983,6 +1008,9 @@ export default function DashboardBuilder({
   }, [currentReportId, fetchReports, fileId, token]);
 
   const anyRunning = runningIds.size > 0;
+  const currentReportDirty =
+    !!currentReportId &&
+    currentReportSnapshot !== reportSnapshot(reportName, charts, sheetName);
   const validChartCount = charts.filter(
     (c) => !validate(c, numCols.map((n) => n.name))
   ).length;
@@ -1061,7 +1089,16 @@ export default function DashboardBuilder({
             </span>
             <select
               value={currentReportId ?? ""}
-              onChange={(e) => loadReport(e.target.value)}
+              onChange={(e) => {
+                const reportId = e.target.value;
+                if (reportId) {
+                  loadReport(reportId);
+                } else {
+                  setCurrentReportId(null);
+                  setCurrentReportSnapshot(null);
+                  setReportName("");
+                }
+              }}
               disabled={reportsLoading}
               className="rounded-md border border-[var(--border)] bg-[color:var(--bg-main)] px-3 py-2 text-sm text-[var(--text-main)] focus:outline-none focus:border-cyan-400"
             >
@@ -1078,19 +1115,21 @@ export default function DashboardBuilder({
             <button
               type="button"
               onClick={() => saveReport("save")}
-              disabled={savingReport || !charts.length}
+              disabled={savingReport || !charts.length || (!!currentReportId && !currentReportDirty)}
               className="rounded-md bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-white text-sm font-semibold px-3 py-2 transition-colors"
             >
-              {savingReport ? "Saving..." : currentReportId ? "Save" : "Save Report"}
+              {savingReport ? "Saving..." : currentReportId ? "Overwrite" : "Save Report"}
             </button>
-            <button
-              type="button"
-              onClick={() => saveReport("save-as")}
-              disabled={savingReport || !charts.length}
-              className="rounded-md border border-[var(--border)] text-[var(--text-main)] hover:bg-[color:var(--bg-panel-2)] disabled:opacity-40 text-sm px-3 py-2 transition-colors"
-            >
-              Save As
-            </button>
+            {currentReportDirty && (
+              <button
+                type="button"
+                onClick={() => saveReport("save-as")}
+                disabled={savingReport || !charts.length}
+                className="rounded-md border border-[var(--border)] text-[var(--text-main)] hover:bg-[color:var(--bg-panel-2)] disabled:opacity-40 text-sm px-3 py-2 transition-colors"
+              >
+                Save As
+              </button>
+            )}
             {currentReportId && (
               <button
                 type="button"

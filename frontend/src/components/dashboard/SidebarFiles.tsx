@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { FILES_CHANGED_EVENT } from "@/lib/file-events";
 
 type FileSummary = {
   id: string;
@@ -158,6 +159,11 @@ export default function SidebarFiles({ reloadFlag }: { reloadFlag: number }) {
     loadFiles();
     loadFileSettings();
   }, [loadFileSettings, loadFiles, reloadFlag]);
+
+  useEffect(() => {
+    window.addEventListener(FILES_CHANGED_EVENT, loadFiles);
+    return () => window.removeEventListener(FILES_CHANGED_EVENT, loadFiles);
+  }, [loadFiles]);
 
   return (
     <div className="flex-1 overflow-y-auto">

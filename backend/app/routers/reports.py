@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
@@ -70,6 +71,31 @@ def _get_report_for_user(file_id: str, report_id: str, db: Session, user: User) 
     return report
 
 
+def _ensure_unique_report_name(
+    file_id: str,
+    name: str,
+    db: Session,
+    user: User,
+    exclude_report_id: str | None = None,
+) -> str:
+    normalized_name = name.strip()
+    if not normalized_name:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Report name is required.")
+    query = db.query(SavedReport).filter(
+        SavedReport.file_id == file_id,
+        SavedReport.tenant_id == user.tenant_id,
+        func.lower(SavedReport.name) == normalized_name.lower(),
+    )
+    if exclude_report_id:
+        query = query.filter(SavedReport.id != exclude_report_id)
+    if query.first():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"A saved report named '{normalized_name}' already exists. Choose a different name or overwrite the existing report.",
+        )
+    return normalized_name
+
+
 def _decode_json(raw: str | None, fallback: Any) -> Any:
     if not raw:
         return fallback
@@ -118,11 +144,12 @@ def create_report(
     user: User = Depends(get_current_user),
 ):
     _get_file_for_user(file_id, db, user)
+    name = _ensure_unique_report_name(file_id, payload.name, db, user)
     report = SavedReport(
         tenant_id=user.tenant_id,
         file_id=file_id,
         created_by=user.id,
-        name=payload.name.strip(),
+        name=name,
         description=payload.description,
         chart_configs_json=json.dumps(payload.chart_configs),
         filters_json=json.dumps(payload.filters or {}),
@@ -157,7 +184,7 @@ def update_report(
     report = _get_report_for_user(file_id, report_id, db, user)
 
     if payload.name is not None:
-        report.name = payload.name.strip()
+        report.name = _ensure_unique_report_name(file_id, payload.name, db, user, exclude_report_id=report_id)
     if payload.description is not None:
         report.description = payload.description
     if payload.chart_configs is not None:
