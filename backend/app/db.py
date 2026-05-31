@@ -22,10 +22,10 @@ def init_db():
     # For now, create tables automatically. Later we'll do proper migrations.
     from . import models  # noqa
     Base.metadata.create_all(bind=engine)
-    _ensure_ai_toggle_columns()
+    _ensure_feature_columns()
 
 
-def _ensure_ai_toggle_columns():
+def _ensure_feature_columns():
     statements = [
         """
         IF COL_LENGTH('tenants', 'ai_enabled') IS NULL
@@ -37,6 +37,42 @@ def _ensure_ai_toggle_columns():
         IF COL_LENGTH('users', 'ai_enabled') IS NULL
         BEGIN
             ALTER TABLE users ADD ai_enabled BIT NOT NULL CONSTRAINT DF_users_ai_enabled DEFAULT 1
+        END
+        """,
+        """
+        IF COL_LENGTH('users', 'confirm_file_delete') IS NULL
+        BEGIN
+            ALTER TABLE users ADD confirm_file_delete BIT NOT NULL CONSTRAINT DF_users_confirm_file_delete DEFAULT 1
+        END
+        """,
+        """
+        IF COL_LENGTH('users', 'recycle_bin_retention_days') IS NULL
+        BEGIN
+            ALTER TABLE users ADD recycle_bin_retention_days INT NOT NULL CONSTRAINT DF_users_recycle_bin_retention_days DEFAULT 30
+        END
+        """,
+        """
+        IF COL_LENGTH('files', 'deleted_at') IS NULL
+        BEGIN
+            ALTER TABLE files ADD deleted_at DATETIMEOFFSET NULL
+        END
+        """,
+        """
+        IF COL_LENGTH('files', 'deleted_by') IS NULL
+        BEGIN
+            ALTER TABLE files ADD deleted_by UNIQUEIDENTIFIER NULL
+        END
+        """,
+        """
+        IF COL_LENGTH('files', 'purge_after') IS NULL
+        BEGIN
+            ALTER TABLE files ADD purge_after DATETIMEOFFSET NULL
+        END
+        """,
+        """
+        IF COL_LENGTH('files', 'restore_blob_path') IS NULL
+        BEGIN
+            ALTER TABLE files ADD restore_blob_path VARCHAR(500) NULL
         END
         """,
     ]

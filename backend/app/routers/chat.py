@@ -112,7 +112,7 @@ def chat_with_file(
 ):
     file = (
         db.query(FileModel)
-        .filter(FileModel.id == file_id, FileModel.tenant_id == user.tenant_id)
+        .filter(FileModel.id == file_id, FileModel.tenant_id == user.tenant_id, FileModel.deleted_at.is_(None))
         .first()
     )
     if not file:
@@ -231,7 +231,7 @@ def explain_issue(
 ):
     file = (
         db.query(FileModel)
-        .filter(FileModel.id == file_id, FileModel.tenant_id == user.tenant_id)
+        .filter(FileModel.id == file_id, FileModel.tenant_id == user.tenant_id, FileModel.deleted_at.is_(None))
         .first()
     )
     if not file:
@@ -329,7 +329,7 @@ def action_plan(
 ):
     file = (
         db.query(FileModel)
-        .filter(FileModel.id == file_id, FileModel.tenant_id == user.tenant_id)
+        .filter(FileModel.id == file_id, FileModel.tenant_id == user.tenant_id, FileModel.deleted_at.is_(None))
         .first()
     )
     if not file:
@@ -425,7 +425,7 @@ def chart_narrative(
 ):
     file = (
         db.query(FileModel)
-        .filter(FileModel.id == file_id, FileModel.tenant_id == user.tenant_id)
+        .filter(FileModel.id == file_id, FileModel.tenant_id == user.tenant_id, FileModel.deleted_at.is_(None))
         .first()
     )
     if not file:

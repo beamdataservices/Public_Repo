@@ -16,7 +16,7 @@ async def get_file_insights(
 ):
     file = (
         db.query(File)
-        .filter(File.id == file_id, File.tenant_id == user.tenant_id)
+        .filter(File.id == file_id, File.tenant_id == user.tenant_id, File.deleted_at.is_(None))
         .first()
     )
 
@@ -37,7 +37,7 @@ def regenerate_ai_summary(
 ):
     file = (
         db.query(File)
-        .filter(File.id == file_id, File.tenant_id == user.tenant_id)
+        .filter(File.id == file_id, File.tenant_id == user.tenant_id, File.deleted_at.is_(None))
         .first()
     )
     if not file:

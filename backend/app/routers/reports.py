@@ -47,7 +47,7 @@ class SavedReportOut(BaseModel):
 def _get_file_for_user(file_id: str, db: Session, user: User) -> File:
     file = (
         db.query(File)
-        .filter(File.id == file_id, File.tenant_id == user.tenant_id)
+        .filter(File.id == file_id, File.tenant_id == user.tenant_id, File.deleted_at.is_(None))
         .first()
     )
     if not file:

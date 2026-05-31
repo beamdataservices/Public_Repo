@@ -53,6 +53,8 @@ class User(Base):
     role = Column(Enum(UserRole), nullable=False, server_default="user")
     is_active = Column(Boolean, nullable=False, server_default="1")
     ai_enabled = Column(Boolean, nullable=False, server_default="1")
+    confirm_file_delete = Column(Boolean, nullable=False, server_default="1")
+    recycle_bin_retention_days = Column(Integer, nullable=False, server_default="30")
 
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.sysutcdatetime())
 
@@ -71,6 +73,10 @@ class File(Base):
     status = Column(String(30), nullable=False, server_default="uploaded")
 
     uploaded_at = Column(DateTime(timezone=True), nullable=False, server_default=func.sysutcdatetime())
+    deleted_at = Column(DateTime(timezone=True))
+    deleted_by = Column(UNIQUEIDENTIFIER, ForeignKey("users.id"))
+    purge_after = Column(DateTime(timezone=True))
+    restore_blob_path = Column(String(500))
 
 
 class SavedReport(Base):

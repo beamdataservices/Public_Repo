@@ -14,6 +14,11 @@ type AISettings = {
   effective_ai_enabled: boolean;
 };
 
+type FileSettings = {
+  confirm_file_delete: boolean;
+  recycle_bin_retention_days: number;
+};
+
 export default function TopNav() {
   const { user, tokens, logout } = useAuth();
   const { theme, setTheme } = useTheme();
@@ -21,6 +26,9 @@ export default function TopNav() {
   const [aiSettings, setAiSettings] = useState<AISettings | null>(null);
   const [aiSettingsError, setAiSettingsError] = useState<string | null>(null);
   const [savingAISettings, setSavingAISettings] = useState(false);
+  const [fileSettings, setFileSettings] = useState<FileSettings | null>(null);
+  const [fileSettingsError, setFileSettingsError] = useState<string | null>(null);
+  const [savingFileSettings, setSavingFileSettings] = useState(false);
 
   const envBadge = useMemo(() => {
     const v = process.env.NEXT_PUBLIC_ENV;
@@ -32,12 +40,17 @@ export default function TopNav() {
 
     async function loadAISettings() {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/ai-settings`, {
-          headers: { Authorization: `Bearer ${tokens.accessToken}` },
-        });
-        if (!res.ok) throw new Error("Could not load AI settings");
-        setAiSettings((await res.json()) as AISettings);
+        const headers = { Authorization: `Bearer ${tokens.accessToken}` };
+        const [aiRes, fileRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/ai-settings`, { headers }),
+          fetch(`${API_BASE_URL}/api/file-settings`, { headers }),
+        ]);
+        if (!aiRes.ok) throw new Error("Could not load AI settings");
+        if (!fileRes.ok) throw new Error("Could not load file settings");
+        setAiSettings((await aiRes.json()) as AISettings);
+        setFileSettings((await fileRes.json()) as FileSettings);
         setAiSettingsError(null);
+        setFileSettingsError(null);
       } catch (err) {
         setAiSettingsError(err instanceof Error ? err.message : "Could not load AI settings");
       }
@@ -68,6 +81,28 @@ export default function TopNav() {
       setAiSettingsError(err instanceof Error ? err.message : "Could not update AI settings");
     } finally {
       setSavingAISettings(false);
+    }
+  }
+
+  async function updateFileSettings(patch: Partial<FileSettings>) {
+    if (!tokens.accessToken) return;
+    setSavingFileSettings(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/file-settings/me`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${tokens.accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) throw new Error("Could not update file settings");
+      setFileSettings((await res.json()) as FileSettings);
+      setFileSettingsError(null);
+    } catch (err) {
+      setFileSettingsError(err instanceof Error ? err.message : "Could not update file settings");
+    } finally {
+      setSavingFileSettings(false);
     }
   }
 
@@ -205,6 +240,42 @@ export default function TopNav() {
                   )}
                 </div>
 
+                <div className="mt-3 border-t pt-3" style={{ borderColor: "var(--border)" }}>
+                  <div className="mb-2 text-xs font-semibold" style={{ color: "var(--text-main)" }}>
+                    File deletion
+                  </div>
+                  <label className="mb-2 flex items-center justify-between gap-3 text-xs">
+                    <span style={{ color: "var(--text-muted)" }}>Confirm before delete</span>
+                    <input
+                      type="checkbox"
+                      checked={fileSettings?.confirm_file_delete ?? true}
+                      disabled={savingFileSettings || !fileSettings}
+                      onChange={(e) => updateFileSettings({ confirm_file_delete: e.target.checked })}
+                    />
+                  </label>
+                  <label className="block text-xs" style={{ color: "var(--text-muted)" }}>
+                    Keep deleted files
+                  </label>
+                  <select
+                    className="mt-1 w-full rounded-md px-2 py-2 text-sm"
+                    value={fileSettings?.recycle_bin_retention_days ?? 30}
+                    disabled={savingFileSettings || !fileSettings}
+                    onChange={(e) => updateFileSettings({ recycle_bin_retention_days: Number(e.target.value) })}
+                    style={{
+                      background: "var(--bg-panel-2)",
+                      color: "var(--text-main)",
+                      border: "1px solid var(--border)",
+                    }}
+                  >
+                    <option value={30}>30 days</option>
+                    <option value={60}>60 days</option>
+                    <option value={90}>90 days</option>
+                  </select>
+                  {fileSettingsError && (
+                    <p className="mt-2 text-xs text-red-400">{fileSettingsError}</p>
+                  )}
+                </div>
+
                 {user.role === "admin" && (
                   <Link
                     href="/dashboard/admin/llm-usage"
@@ -219,6 +290,19 @@ export default function TopNav() {
                     AI Usage
                   </Link>
                 )}
+
+                <Link
+                  href="/dashboard/recycle-bin"
+                  onClick={() => setOpenSettings(false)}
+                  className="mt-3 block w-full rounded-md px-3 py-2 text-xs font-medium text-center"
+                  style={{
+                    border: "1px solid var(--border)",
+                    background: "transparent",
+                    color: "var(--text-main)",
+                  }}
+                >
+                  Recycle Bin
+                </Link>
 
                 <button
                   type="button"
