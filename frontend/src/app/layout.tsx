@@ -6,7 +6,11 @@ export const metadata: Metadata = {
   title: "BEAM Analytics",
   description: "Main Dashboard",
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/beam-tab-favicon-20260523-bordered.ico", sizes: "any" },
+      { url: "/beam-tab-favicon-20260523-bordered.png", type: "image/png" },
+    ],
+    shortcut: "/beam-tab-favicon-20260523-bordered.ico",
   },
 };
 

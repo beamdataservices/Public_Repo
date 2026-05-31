@@ -82,9 +82,15 @@ export default function TopNav() {
     >
       {/* Left: favicon + titles */}
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-lg flex items-center justify-center"
-             style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.14)" }}>
-          <Image src="/favicon.png" alt="BEAM" width={20} height={20} priority />
+        <div className="h-10 w-10 overflow-hidden rounded-lg">
+          <Image
+            src="/beam-favicon-20260531-noborder.png"
+            alt="BEAM"
+            width={40}
+            height={40}
+            className="h-10 w-10 object-cover"
+            priority
+          />
         </div>
 
         <div className="leading-tight">

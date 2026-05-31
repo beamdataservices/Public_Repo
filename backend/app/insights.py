@@ -511,7 +511,7 @@ def build_charts(df: pd.DataFrame) -> dict:
 
 def extract_filters(df: pd.DataFrame) -> dict:
     return {
-        col: sorted(df[col].dropna().unique().tolist())
+        col: sorted({str(value) for value in df[col].dropna().unique().tolist()})
         for col in df.select_dtypes(include=["object"]).columns
         if 2 <= df[col].nunique(dropna=True) <= 50
     }
@@ -522,7 +522,7 @@ def apply_filters(df: pd.DataFrame, filters: dict) -> pd.DataFrame:
     for key, val in (filters or {}).items():
         if key not in filtered.columns or val in [None, "", "all"]:
             continue
-        filtered = filtered[filtered[key] == val]
+        filtered = filtered[filtered[key].notna() & (filtered[key].astype(str) == str(val))]
     return filtered
 
 
