@@ -14,12 +14,8 @@ class Settings(BaseSettings):
 
     # --- User invitation email ---
     FRONTEND_BASE_URL: str = "http://localhost:3000"
-    SMTP_HOST: Optional[str] = None
-    SMTP_PORT: int = 587
-    SMTP_USERNAME: Optional[str] = None
-    SMTP_PASSWORD: Optional[str] = None
+    ACS_CONNECTION_STRING: Optional[str] = None
     SMTP_FROM_EMAIL: Optional[str] = None
-    SMTP_USE_TLS: bool = True
     INVITE_EXPIRE_HOURS: int = 72
     INVITE_MAX_PER_HOUR: int = 10
     PASSWORD_RESET_EXPIRE_MINUTES: int = 60

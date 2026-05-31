@@ -6,6 +6,7 @@ pydantic-settings>=2.0
 SQLAlchemy>=2.0
 pyodbc
 azure-storage-blob
+azure-communication-email
 python-multipart
 alembic
 passlib[bcrypt]
