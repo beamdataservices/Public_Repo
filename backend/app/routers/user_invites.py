@@ -13,6 +13,7 @@ from app.deps import get_db
 from app.models import AuditLog, Tenant, User, UserInvite, UserRole
 from app.services.audit_log import add_audit_log
 from app.services.email_sender import send_email
+from app.services.email_templates import invitation_email
 
 
 settings = get_settings()
@@ -65,12 +66,12 @@ def _invite_url(token: str) -> str:
 
 
 def _send_invite_email(email: str, invite_url: str, expires_at: datetime) -> bool:
+    plain_text, html = invitation_email(invite_url, expires_at)
     return send_email(
         email,
         "You have been invited to BEAM Analytics",
-        "You have been invited to join a BEAM Analytics tenant.\n\n"
-        f"Create your account: {invite_url}\n\n"
-        f"This invitation expires at {expires_at.isoformat()} UTC.",
+        plain_text,
+        html,
     )
 
 

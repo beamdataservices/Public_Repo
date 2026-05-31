@@ -94,7 +94,10 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     if not user.is_active:
-        raise HTTPException(status_code=403, detail="User inactive")
+        raise HTTPException(
+            status_code=403,
+            detail="Your account access has been deactivated. Please contact your account administrator for assistance.",
+        )
 
     access = create_access_token(user)
     refresh = create_refresh_token(user)

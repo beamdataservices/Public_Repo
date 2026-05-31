@@ -13,6 +13,7 @@ from app.deps import get_db
 from app.models import PasswordResetToken, User
 from app.services.audit_log import add_audit_log
 from app.services.email_sender import send_email
+from app.services.email_templates import password_reset_email
 
 
 settings = get_settings()
@@ -70,14 +71,13 @@ def request_password_reset(payload: RequestPasswordResetIn, db: Session = Depend
             )
             db.commit()
             reset_url = f"{settings.FRONTEND_BASE_URL.rstrip('/')}/reset-password?token={token}"
+            plain_text, html = password_reset_email(reset_url, expires_at)
             try:
                 send_email(
                     user.email,
                     "Reset your BEAM Analytics password",
-                    "A password reset was requested for your BEAM Analytics account.\n\n"
-                    f"Reset your password: {reset_url}\n\n"
-                    f"This link expires at {expires_at.isoformat()} UTC. "
-                    "If you did not request this reset, you can ignore this email.",
+                    plain_text,
+                    html,
                 )
             except Exception:
                 pass

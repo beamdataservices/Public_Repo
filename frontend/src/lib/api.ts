@@ -25,8 +25,8 @@ export interface FileItem {
 
 async function handleJson<T>(res: Response): Promise<T> {
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text || `HTTP ${res.status}`);
+    const body = await res.json().catch(() => null) as { detail?: string } | null;
+    throw new Error(body?.detail || `HTTP ${res.status}`);
   }
   return res.json() as Promise<T>;
 }

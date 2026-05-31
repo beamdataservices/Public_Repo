@@ -6,7 +6,7 @@ from app.config import get_settings
 settings = get_settings()
 
 
-def send_email(to_email: str, subject: str, body: str) -> bool:
+def send_email(to_email: str, subject: str, body: str, html_body: str | None = None) -> bool:
     if not settings.ACS_CONNECTION_STRING or not settings.SMTP_FROM_EMAIL:
         return False
 
@@ -18,6 +18,7 @@ def send_email(to_email: str, subject: str, body: str) -> bool:
             "content": {
                 "subject": subject,
                 "plainText": body,
+                **({"html": html_body} if html_body else {}),
             },
         }
     )
