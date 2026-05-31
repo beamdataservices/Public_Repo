@@ -36,12 +36,12 @@ export default function AdminUsersPage() {
         fetch(`${API_BASE_URL}/api/admin/users`, { headers }),
         fetch(`${API_BASE_URL}/api/admin/tenant/audit-log`, { headers }),
       ]);
-      if (!usersRes.ok || !auditRes.ok) throw new Error("Could not load tenant administration.");
+      if (!usersRes.ok || !auditRes.ok) throw new Error("Could not load account administration.");
       setData((await usersRes.json()) as TenantUsers);
       setAuditLog((await auditRes.json()) as AuditLog[]);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load tenant administration.");
+      setError(err instanceof Error ? err.message : "Could not load account administration.");
     } finally {
       setLoading(false);
     }
@@ -87,7 +87,7 @@ export default function AdminUsersPage() {
   }
 
   async function deactivateTenant() {
-    if (!confirm("Deactivate this tenant and prevent all users from signing in? Stored data will be preserved.")) return;
+    if (!confirm("Deactivate this account and prevent all users from signing in? Stored data will be preserved.")) return;
     const result = await request("/api/admin/tenant", "DELETE", { confirmation: tenantConfirmation });
     if (result) window.location.href = "/login";
   }
@@ -95,7 +95,7 @@ export default function AdminUsersPage() {
   return (
     <AuthGuard>
       <div className="space-y-6 px-6 py-6">
-        <header><h1 className="text-xl font-semibold text-[var(--text-main)]">Add Users</h1><p className="mt-1 text-sm text-[var(--text-muted)]">Manage access to your tenant.</p></header>
+        <header><h1 className="text-xl font-semibold text-[var(--text-main)]">Add Users</h1><p className="mt-1 text-sm text-[var(--text-muted)]">Manage access to your account.</p></header>
         {!isAdmin && <Message>Admin privileges are required to manage users.</Message>}
         {error && <Message>{error}</Message>}
 
@@ -109,11 +109,11 @@ export default function AdminUsersPage() {
 
         {loading && isAdmin ? <p className="py-8 text-center text-sm text-[var(--text-muted)]">Loading users...</p> : isAdmin && <>
           <div className="grid gap-6 lg:grid-cols-2">
-            <Panel title="Tenant Users">{data.users.map((item) => <div key={item.id} className="flex items-center justify-between gap-3 rounded-md border border-[var(--border)] px-3 py-2 text-sm"><div><span>{item.email}</span><span className="ml-2 text-xs text-[var(--text-muted)]">{item.role}{item.is_active ? "" : " - inactive"}</span></div>{item.role !== "admin" && <Button disabled={busy} onClick={() => void request(`/api/admin/users/${item.id}${item.is_active ? "" : "/reactivate"}`, item.is_active ? "DELETE" : "POST")}>{item.is_active ? "Deactivate" : "Reactivate"}</Button>}</div>)}</Panel>
+            <Panel title="Account Owner">{data.users.filter((item) => item.role === "admin").map((item) => <UserRow key={item.id} item={item} busy={busy} request={request} />)}{data.users.some((item) => item.role !== "admin") && <><h3 className="pt-3 text-sm font-semibold">Users</h3>{data.users.filter((item) => item.role !== "admin").map((item) => <UserRow key={item.id} item={item} busy={busy} request={request} />)}</>}</Panel>
             <Panel title="Pending Invitations">{data.pending_invites.length === 0 && <p className="text-sm text-[var(--text-muted)]">No pending invitations.</p>}{data.pending_invites.map((invite) => <div key={invite.id} className="rounded-md border border-[var(--border)] px-3 py-2 text-sm"><p>{invite.email}</p><p className="mt-1 text-xs text-[var(--text-muted)]">Expires {new Date(invite.expires_at).toLocaleString()}</p><div className="mt-2 flex gap-2"><Button disabled={busy} onClick={() => void resendInvite(invite.id)}>Resend</Button><Button disabled={busy} onClick={() => void request(`/api/admin/users/invitations/${invite.id}`, "DELETE")}>Revoke</Button></div></div>)}</Panel>
           </div>
           <Panel title="Recent Admin Activity">{auditLog.length === 0 && <p className="text-sm text-[var(--text-muted)]">No account activity recorded yet.</p>}{auditLog.map((entry) => <p key={entry.id} className="border-b border-[var(--border)] py-2 text-xs text-[var(--text-muted)]"><span className="text-[var(--text-main)]">{entry.action}</span>{entry.details.email ? ` - ${entry.details.email}` : ""}<span className="ml-2">{new Date(entry.created_at).toLocaleString()}</span></p>)}</Panel>
-          <Panel title="Deactivate Tenant"><p className="text-sm text-[var(--text-muted)]">This blocks all sign-ins but preserves files and records for recovery. Type <span className="text-[var(--text-main)]">{data.tenant_name}</span> to confirm.</p><div className="mt-3 flex flex-wrap gap-3"><input value={tenantConfirmation} onChange={(e) => setTenantConfirmation(e.target.value)} className="rounded-md border border-red-500/40 bg-[color:var(--bg-main)] px-3 py-2 text-sm" /><Button disabled={busy || tenantConfirmation !== data.tenant_name} onClick={() => void deactivateTenant()}>Deactivate tenant</Button></div></Panel>
+          <Panel title="Deactivate Account"><p className="text-sm text-[var(--text-muted)]">This blocks all sign-ins but preserves files and records for recovery. Type <span className="text-[var(--text-main)]">{data.tenant_name}</span> to confirm.</p><div className="mt-3 flex flex-wrap gap-3"><input value={tenantConfirmation} onChange={(e) => setTenantConfirmation(e.target.value)} className="rounded-md border border-red-500/40 bg-[color:var(--bg-main)] px-3 py-2 text-sm" /><Button disabled={busy || tenantConfirmation !== data.tenant_name} onClick={() => void deactivateTenant()}>Deactivate account</Button></div></Panel>
         </>}
       </div>
     </AuthGuard>
@@ -121,5 +121,6 @@ export default function AdminUsersPage() {
 }
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) { return <section className="space-y-2 rounded-lg border border-[var(--border)] bg-[color:var(--bg-panel)] p-4"><h2 className="text-sm font-semibold">{title}</h2>{children}</section>; }
+function UserRow({ item, busy, request }: { item: TenantUser; busy: boolean; request: (path: string, method: string, body?: object) => Promise<unknown> }) { return <div className="flex items-center justify-between gap-3 rounded-md border border-[var(--border)] px-3 py-2 text-sm"><div><span>{item.email}</span><span className="ml-2 text-xs text-[var(--text-muted)]">{item.role}{item.is_active ? "" : " - inactive"}</span></div>{item.role !== "admin" && <Button disabled={busy} onClick={() => void request(`/api/admin/users/${item.id}${item.is_active ? "" : "/reactivate"}`, item.is_active ? "DELETE" : "POST")}>{item.is_active ? "Deactivate" : "Reactivate"}</Button>}</div>; }
 function Button({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) { return <button {...props} className="rounded-md border border-cyan-500/40 px-3 py-1.5 text-xs font-semibold text-cyan-200 hover:bg-cyan-950/40 disabled:opacity-50">{children}</button>; }
 function Message({ children }: { children: React.ReactNode }) { return <div className="rounded-lg border border-red-500/40 bg-red-950/20 p-4 text-sm text-red-300">{children}</div>; }
