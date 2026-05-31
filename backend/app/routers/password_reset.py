@@ -36,7 +36,7 @@ def _token_hash(token: str) -> str:
 def request_password_reset(payload: RequestPasswordResetIn, db: Session = Depends(get_db)):
     user = (
         db.query(User)
-        .filter(func.lower(User.email) == payload.email.lower(), User.is_active.is_(True))
+        .filter(func.lower(User.email) == payload.email.lower(), User.is_active == True)
         .first()
     )
     if user:
@@ -99,7 +99,7 @@ def confirm_password_reset(payload: ConfirmPasswordResetIn, db: Session = Depend
     if not reset:
         raise HTTPException(status_code=400, detail="This password reset link is invalid or has expired.")
 
-    user = db.query(User).filter(User.id == reset.user_id, User.is_active.is_(True)).first()
+    user = db.query(User).filter(User.id == reset.user_id, User.is_active == True).first()
     if not user:
         raise HTTPException(status_code=400, detail="This password reset link is invalid or has expired.")
 
