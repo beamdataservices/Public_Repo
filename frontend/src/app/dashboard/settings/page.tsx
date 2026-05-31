@@ -9,7 +9,7 @@ import { useTheme } from "@/context/ThemeContext";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 type AISettings = { tenant_ai_enabled: boolean; user_ai_enabled: boolean; effective_ai_enabled: boolean };
-type FileSettings = { confirm_file_delete: boolean; recycle_bin_retention_days: number };
+type FileSettings = { confirm_file_delete: boolean; recycle_bin_retention_days: number; theme_preference: "light" | "dark" };
 
 export default function SettingsPage() {
   const { user, tokens } = useAuth();
@@ -26,10 +26,12 @@ export default function SettingsPage() {
       .then(async ([aiRes, fileRes]) => {
         if (!aiRes.ok || !fileRes.ok) throw new Error("Could not load settings.");
         setAI(await aiRes.json() as AISettings);
-        setFiles(await fileRes.json() as FileSettings);
+        const loadedFileSettings = await fileRes.json() as FileSettings;
+        setFiles(loadedFileSettings);
+        setTheme(loadedFileSettings.theme_preference);
       })
       .catch((err: unknown) => setError(err instanceof Error ? err.message : "Could not load settings."));
-  }, [tokens.accessToken]);
+  }, [setTheme, tokens.accessToken]);
 
   async function update(path: string, payload: object, apply: (value: AISettings | FileSettings) => void) {
     if (!tokens.accessToken) return;
@@ -50,7 +52,7 @@ export default function SettingsPage() {
     <header><h1 className="text-xl font-semibold">All Settings</h1><p className="mt-1 text-sm text-[var(--text-muted)]">Choose a section to review and update your account preferences.</p></header>
     {error && <p className="rounded-lg border border-red-500/40 bg-red-950/20 p-3 text-sm text-red-300">{error}</p>}
     <SettingsSection title="Appearance" description="Choose how BEAM Analytics looks on this device." open>
-      <label className="block max-w-xs text-sm"><span className="mb-1 block text-[var(--text-muted)]">Theme</span><select value={theme} onChange={(e) => setTheme(e.target.value as "light" | "dark")} className="w-full cursor-pointer rounded-md border border-[var(--border)] bg-[color:var(--bg-panel-2)] px-3 py-2"><option value="light">Light</option><option value="dark">Dark</option></select></label>
+      <label className="block max-w-xs text-sm"><span className="mb-1 block text-[var(--text-muted)]">Theme</span><select value={theme} onChange={(e) => { const nextTheme = e.target.value as "light" | "dark"; setTheme(nextTheme); void update("/api/file-settings/me", { theme_preference: nextTheme }, (value) => setFiles(value as FileSettings)); }} className="w-full cursor-pointer rounded-md border border-[var(--border)] bg-[color:var(--bg-panel-2)] px-3 py-2"><option value="light">Light</option><option value="dark">Dark</option></select></label>
     </SettingsSection>
     <SettingsSection title="AI Access" description="Control whether AI-assisted features are available.">
       <SettingRow label="My AI access"><SettingsToggle label="My AI access" checked={ai?.user_ai_enabled ?? true} disabled={saving || !ai} onChange={(checked) => void update("/api/ai-settings/me", { ai_enabled: checked }, (value) => setAI(value as AISettings))} /></SettingRow>

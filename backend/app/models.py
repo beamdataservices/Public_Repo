@@ -55,6 +55,7 @@ class User(Base):
     ai_enabled = Column(Boolean, nullable=False, server_default="1")
     confirm_file_delete = Column(Boolean, nullable=False, server_default="1")
     recycle_bin_retention_days = Column(Integer, nullable=False, server_default="30")
+    theme_preference = Column(String(10), nullable=False, server_default="light")
 
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.sysutcdatetime())
 

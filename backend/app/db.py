@@ -52,6 +52,12 @@ def _ensure_feature_columns():
         END
         """,
         """
+        IF COL_LENGTH('users', 'theme_preference') IS NULL
+        BEGIN
+            ALTER TABLE users ADD theme_preference VARCHAR(10) NOT NULL CONSTRAINT DF_users_theme_preference DEFAULT 'light'
+        END
+        """,
+        """
         IF COL_LENGTH('files', 'deleted_at') IS NULL
         BEGIN
             ALTER TABLE files ADD deleted_at DATETIMEOFFSET NULL

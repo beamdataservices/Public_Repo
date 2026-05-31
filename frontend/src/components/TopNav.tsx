@@ -9,7 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 type AISettings = { tenant_ai_enabled: boolean; user_ai_enabled: boolean; effective_ai_enabled: boolean };
-type FileSettings = { confirm_file_delete: boolean; recycle_bin_retention_days: number };
+type FileSettings = { confirm_file_delete: boolean; recycle_bin_retention_days: number; theme_preference: "light" | "dark" };
 
 export default function TopNav() {
   const { user, tokens, logout } = useAuth();
@@ -23,7 +23,7 @@ export default function TopNav() {
   const envBadge = useMemo(() => process.env.NEXT_PUBLIC_ENV?.toUpperCase() ?? null, []);
 
   useEffect(() => {
-    if (!openSettings || !tokens.accessToken) return;
+    if (!tokens.accessToken) return;
     const headers = { Authorization: `Bearer ${tokens.accessToken}` };
     Promise.all([
       fetch(`${API_BASE_URL}/api/ai-settings`, { headers }),
@@ -32,11 +32,13 @@ export default function TopNav() {
       .then(async ([aiRes, fileRes]) => {
         if (!aiRes.ok || !fileRes.ok) throw new Error("Could not load settings");
         setAiSettings(await aiRes.json() as AISettings);
-        setFileSettings(await fileRes.json() as FileSettings);
+        const loadedFileSettings = await fileRes.json() as FileSettings;
+        setFileSettings(loadedFileSettings);
+        setTheme(loadedFileSettings.theme_preference);
         setError(null);
       })
       .catch((err: unknown) => setError(err instanceof Error ? err.message : "Could not load settings"));
-  }, [openSettings, tokens.accessToken]);
+  }, [setTheme, tokens.accessToken]);
 
   useEffect(() => {
     if (!openSettings) return;
@@ -82,7 +84,7 @@ export default function TopNav() {
           {openSettings && <div className="absolute right-0 top-12 w-60 rounded-xl border border-[var(--border)] bg-[color:var(--bg-panel)] p-3 text-[var(--text-main)] shadow-[var(--shadow)]">
             <div className="mb-2 text-sm font-semibold">Settings</div>
             <label className="mb-1 block text-xs text-[var(--text-muted)]">Theme</label>
-            <select value={theme} onChange={(e) => setTheme(e.target.value as "light" | "dark")} className="w-full cursor-pointer rounded-md border border-[var(--border)] bg-[color:var(--bg-panel-2)] px-2 py-2 text-sm"><option value="light">Light</option><option value="dark">Dark</option></select>
+            <select value={theme} onChange={(e) => { const nextTheme = e.target.value as "light" | "dark"; setTheme(nextTheme); void update("/api/file-settings/me", { theme_preference: nextTheme }, (value) => setFileSettings(value as FileSettings)); }} className="w-full cursor-pointer rounded-md border border-[var(--border)] bg-[color:var(--bg-panel-2)] px-2 py-2 text-sm"><option value="light">Light</option><option value="dark">Dark</option></select>
             <div className="mt-3 space-y-2 border-t border-[var(--border)] pt-3 text-xs">
               <div className="font-semibold">AI access</div>
               {user.role === "admin" && <SettingRow label="Account AI"><SettingsToggle label="Account AI" checked={aiSettings?.tenant_ai_enabled ?? true} disabled={saving || !aiSettings} onChange={(checked) => void update("/api/ai-settings/tenant", { ai_enabled: checked }, (value) => setAiSettings(value as AISettings))} /></SettingRow>}
