@@ -59,6 +59,45 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.sysutcdatetime())
 
 
+class UserInvite(Base):
+    __tablename__ = "user_invites"
+
+    id = Column(UNIQUEIDENTIFIER, primary_key=True, default=uuid_str)
+    tenant_id = Column(UNIQUEIDENTIFIER, ForeignKey("tenants.id"), nullable=False)
+    email = Column(String(255), nullable=False)
+    token_hash = Column(String(64), nullable=False, unique=True)
+    invited_by = Column(UNIQUEIDENTIFIER, ForeignKey("users.id"), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    accepted_at = Column(DateTime(timezone=True))
+    revoked_at = Column(DateTime(timezone=True))
+    last_sent_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.sysutcdatetime())
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(UNIQUEIDENTIFIER, primary_key=True, default=uuid_str)
+    user_id = Column(UNIQUEIDENTIFIER, ForeignKey("users.id"), nullable=False)
+    token_hash = Column(String(64), nullable=False, unique=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.sysutcdatetime())
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(UNIQUEIDENTIFIER, primary_key=True, default=uuid_str)
+    tenant_id = Column(UNIQUEIDENTIFIER, ForeignKey("tenants.id"), nullable=False)
+    actor_user_id = Column(UNIQUEIDENTIFIER, ForeignKey("users.id"))
+    action = Column(String(100), nullable=False)
+    target_type = Column(String(50), nullable=False)
+    target_id = Column(String(255))
+    details_json = Column(Text)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.sysutcdatetime())
+
+
 class File(Base):
     __tablename__ = "files"
 

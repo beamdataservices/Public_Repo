@@ -75,6 +75,18 @@ def _ensure_feature_columns():
             ALTER TABLE files ADD restore_blob_path VARCHAR(500) NULL
         END
         """,
+        """
+        IF OBJECT_ID('user_invites', 'U') IS NOT NULL AND COL_LENGTH('user_invites', 'revoked_at') IS NULL
+        BEGIN
+            ALTER TABLE user_invites ADD revoked_at DATETIMEOFFSET NULL
+        END
+        """,
+        """
+        IF OBJECT_ID('user_invites', 'U') IS NOT NULL AND COL_LENGTH('user_invites', 'last_sent_at') IS NULL
+        BEGIN
+            ALTER TABLE user_invites ADD last_sent_at DATETIMEOFFSET NULL
+        END
+        """,
     ]
     try:
         with engine.begin() as conn:

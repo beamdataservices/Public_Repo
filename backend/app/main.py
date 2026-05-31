@@ -9,6 +9,9 @@ from app.routers.reports import router as reports_router
 from app.routers.admin import router as admin_router
 from app.routers.ai_settings import router as ai_settings_router
 from app.routers.file_settings import router as file_settings_router
+from app.routers.user_invites import admin_router as admin_users_router, public_router as invitation_auth_router
+from app.routers.password_reset import router as password_reset_router
+from app.routers.tenant_admin import router as tenant_admin_router
 from app.routers.chat import router as chat_router
 
 
@@ -40,4 +43,8 @@ app.include_router(reports_router)
 app.include_router(admin_router)
 app.include_router(ai_settings_router)
 app.include_router(file_settings_router)
+app.include_router(admin_users_router)
+app.include_router(invitation_auth_router)
+app.include_router(password_reset_router)
+app.include_router(tenant_admin_router)
 app.include_router(chat_router, prefix="/api/files", tags=["chat"])

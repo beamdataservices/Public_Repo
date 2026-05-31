@@ -17,8 +17,8 @@ export default function LoginPage() {
     try {
       await login(email, password);
       // login() handles redirect
-    } catch (err: any) {
-      setError(err?.message || "Login failed");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Login failed");
     }
   }
 
@@ -66,6 +66,9 @@ export default function LoginPage() {
               className="w-full rounded-md border border-[var(--border)] bg-[var(--bg-main)] px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
             />
           </div>
+          <Link href="/forgot-password" className="block text-right text-xs text-cyan-300 hover:underline">
+            Forgot password?
+          </Link>
 
           {/* Submit */}
           <button
@@ -79,7 +82,7 @@ export default function LoginPage() {
 
         {/* Register link */}
         <p className="mt-4 text-center text-xs text-[var(--text-muted)]">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link href="/register" className="text-cyan-300 hover:underline">
             Create your account
           </Link>

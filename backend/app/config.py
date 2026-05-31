@@ -12,6 +12,19 @@ class Settings(BaseSettings):
     BLOB_CONTAINER: str = "tenant-files"
     #OPENAI_KEY: str should be handled within ACA env now.
 
+    # --- User invitation email ---
+    FRONTEND_BASE_URL: str = "http://localhost:3000"
+    SMTP_HOST: Optional[str] = None
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    SMTP_FROM_EMAIL: Optional[str] = None
+    SMTP_USE_TLS: bool = True
+    INVITE_EXPIRE_HOURS: int = 72
+    INVITE_MAX_PER_HOUR: int = 10
+    PASSWORD_RESET_EXPIRE_MINUTES: int = 60
+    PASSWORD_RESET_MAX_PER_HOUR: int = 5
+
     # --- LLM usage/cost tracking ---
     OPENAI_MODEL: str = "gpt-4o-mini"
     LLM_DEFAULT_INPUT_PRICE_PER_1M: Optional[float] = 0.15

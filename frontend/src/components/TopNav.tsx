@@ -290,18 +290,32 @@ export default function TopNav() {
                 </div>
 
                 {user.role === "admin" && (
-                  <Link
-                    href="/dashboard/admin/llm-usage"
-                    onClick={() => setOpenSettings(false)}
-                    className="mt-3 block w-full rounded-md px-3 py-2 text-xs font-medium text-center"
-                    style={{
-                      border: "1px solid var(--border)",
-                      background: "transparent",
-                      color: "var(--text-main)",
-                    }}
-                  >
-                    AI Usage
-                  </Link>
+                  <>
+                    <Link
+                      href="/dashboard/admin/users"
+                      onClick={() => setOpenSettings(false)}
+                      className="mt-3 block w-full rounded-md px-3 py-2 text-xs font-medium text-center"
+                      style={{
+                        border: "1px solid var(--border)",
+                        background: "transparent",
+                        color: "var(--text-main)",
+                      }}
+                    >
+                      Add Users
+                    </Link>
+                    <Link
+                      href="/dashboard/admin/llm-usage"
+                      onClick={() => setOpenSettings(false)}
+                      className="mt-3 block w-full rounded-md px-3 py-2 text-xs font-medium text-center"
+                      style={{
+                        border: "1px solid var(--border)",
+                        background: "transparent",
+                        color: "var(--text-main)",
+                      }}
+                    >
+                      AI Usage
+                    </Link>
+                  </>
                 )}
 
                 <Link

@@ -1,7 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
+import re
+from uuid import uuid4
 
 from app.deps import get_db
 from app.models import User, Tenant, TenantPlan, UserRole
@@ -19,8 +22,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 class RegisterRequest(BaseModel):
     email: EmailStr
-    password: str
-    tenant_name: str
+    password: str = Field(..., min_length=8, max_length=128)
+    tenant_name: str | None = None
 
 
 class LoginRequest(BaseModel):
@@ -35,31 +38,32 @@ class TokenResponse(BaseModel):
 
 
 def generate_slug(name: str) -> str:
-    return (
-        name.lower()
-        .strip()
-        .replace(" ", "-")
-        .replace("_", "-")
-    )
+    slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    return slug or "personal"
+
+
+def unique_tenant_slug(db: Session, name: str) -> str:
+    slug = generate_slug(name)
+    if not db.query(Tenant).filter(Tenant.slug == slug).first():
+        return slug
+    return f"{slug}-{str(uuid4())[:8]}"
 
 
 @router.post("/register", response_model=TokenResponse)
 def register(payload: RegisterRequest, db: Session = Depends(get_db)):
+    email = str(payload.email).lower()
     # Check if email is already used anywhere
-    existing = db.query(User).filter(User.email == payload.email).first()
+    existing = db.query(User).filter(func.lower(User.email) == email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    slug = generate_slug(payload.tenant_name)
-
-    existing_tenant = db.query(Tenant).filter(Tenant.slug == slug).first()
-    if existing_tenant:
-        raise HTTPException(status_code=400, detail="Tenant name is already taken")
+    tenant_name = (payload.tenant_name or "").strip() or email.split("@", 1)[0]
+    slug = unique_tenant_slug(db, tenant_name)
 
     trial_ends_at = datetime.utcnow() + timedelta(days=settings.TRIAL_DAYS)
 
     tenant = Tenant(
-        name=payload.tenant_name,
+        name=tenant_name,
         slug=slug,
         plan=TenantPlan.demo,
         trial_ends_at=trial_ends_at,
@@ -68,7 +72,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     db.flush()  # so tenant.id is available
 
     user = User(
-        email=payload.email,
+        email=email,
         password_hash=hash_password(payload.password),
         tenant_id=tenant.id,
         role=UserRole.admin,
@@ -85,7 +89,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse)
 def login(payload: LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == payload.email).first()
+    user = db.query(User).filter(func.lower(User.email) == str(payload.email).lower()).first()
     if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
