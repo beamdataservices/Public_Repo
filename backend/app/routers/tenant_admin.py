@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import admin_required
 from app.deps import get_db
-from app.models import AuditLog, Tenant, User
+from app.models import AccountMembership, AuditLog, Tenant, User
 from app.services.audit_log import add_audit_log
 
 
@@ -76,6 +76,6 @@ def deactivate_tenant(
         details={"tenant_name": tenant.name},
     )
     tenant.is_active = False
-    db.query(User).filter(User.tenant_id == tenant.id).update({"is_active": False})
+    db.query(AccountMembership).filter(AccountMembership.tenant_id == tenant.id).update({"is_active": False})
     db.commit()
     return {"detail": "Tenant access deactivated. Data remains preserved for administrative recovery."}

@@ -12,7 +12,7 @@ type AISettings = { tenant_ai_enabled: boolean; user_ai_enabled: boolean; effect
 type FileSettings = { confirm_file_delete: boolean; recycle_bin_retention_days: number; theme_preference: "light" | "dark" };
 
 export default function TopNav() {
-  const { user, tokens, logout } = useAuth();
+  const { user, tokens, logout, switchAccount } = useAuth();
   const { theme, setTheme } = useTheme();
   const [openSettings, setOpenSettings] = useState(false);
   const [aiSettings, setAiSettings] = useState<AISettings | null>(null);
@@ -73,7 +73,23 @@ export default function TopNav() {
       </div>
 
       {user && <div className="relative flex items-center gap-3 text-sm">
-        <div className="mr-1 text-right font-medium">{user.email}</div>
+        <div className="mr-1 text-right">
+          <div className="font-medium">{user.email}</div>
+          <select
+            title="Switch account"
+            aria-label="Switch account"
+            value={user.active_account.membership_id}
+            disabled={user.available_accounts.length <= 1}
+            onChange={(e) => void switchAccount(e.target.value)}
+            className="mt-1 max-w-48 cursor-pointer rounded border border-white/20 bg-black/15 px-2 py-1 text-xs text-white disabled:cursor-default disabled:opacity-70"
+          >
+            {user.available_accounts.map((account) => (
+              <option key={account.membership_id} value={account.membership_id} className="text-black">
+                {account.account_name}
+              </option>
+            ))}
+          </select>
+        </div>
         <Link href="/dashboard" aria-label="Home" title="Home" className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-white/25 bg-black/15 hover:bg-white/10">
           <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-2"><path d="m3 11 9-7 9 7" /><path d="M5 10v10h14V10" /><path d="M9 20v-6h6v6" /></svg>
         </Link>
@@ -87,13 +103,13 @@ export default function TopNav() {
             <select value={theme} onChange={(e) => { const nextTheme = e.target.value as "light" | "dark"; setTheme(nextTheme); void update("/api/file-settings/me", { theme_preference: nextTheme }, (value) => setFileSettings(value as FileSettings)); }} className="w-full cursor-pointer rounded-md border border-[var(--border)] bg-[color:var(--bg-panel-2)] px-2 py-2 text-sm"><option value="light">Light</option><option value="dark">Dark</option></select>
             <div className="mt-3 space-y-2 border-t border-[var(--border)] pt-3 text-xs">
               <div className="font-semibold">AI access</div>
-              {user.role === "admin" && <SettingRow label="Account AI"><SettingsToggle label="Account AI" checked={aiSettings?.tenant_ai_enabled ?? true} disabled={saving || !aiSettings} onChange={(checked) => void update("/api/ai-settings/tenant", { ai_enabled: checked }, (value) => setAiSettings(value as AISettings))} /></SettingRow>}
+              {(user.role === "owner" || user.role === "admin") && <SettingRow label="Account AI"><SettingsToggle label="Account AI" checked={aiSettings?.tenant_ai_enabled ?? true} disabled={saving || !aiSettings} onChange={(checked) => void update("/api/ai-settings/tenant", { ai_enabled: checked }, (value) => setAiSettings(value as AISettings))} /></SettingRow>}
               <SettingRow label="My AI"><SettingsToggle label="My AI" checked={aiSettings?.user_ai_enabled ?? true} disabled={saving || !aiSettings} onChange={(checked) => void update("/api/ai-settings/me", { ai_enabled: checked }, (value) => setAiSettings(value as AISettings))} /></SettingRow>
             </div>
             <div className="mt-3 space-y-2 border-t border-[var(--border)] pt-3 text-xs"><div className="font-semibold">File deletion</div><SettingRow label="Confirm before delete"><SettingsToggle label="Confirm before delete" checked={fileSettings?.confirm_file_delete ?? true} disabled={saving || !fileSettings} onChange={(checked) => void update("/api/file-settings/me", { confirm_file_delete: checked }, (value) => setFileSettings(value as FileSettings))} /></SettingRow></div>
             {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
-            {user.role === "admin" && <MenuLink href="/dashboard/admin/users" close={() => setOpenSettings(false)}>Add Users</MenuLink>}
-            {user.role === "admin" && <MenuLink href="/dashboard/admin/llm-usage" close={() => setOpenSettings(false)}>AI Usage</MenuLink>}
+            {(user.role === "owner" || user.role === "admin") && <MenuLink href="/dashboard/admin/users" close={() => setOpenSettings(false)}>Add Users</MenuLink>}
+            {(user.role === "owner" || user.role === "admin") && <MenuLink href="/dashboard/admin/llm-usage" close={() => setOpenSettings(false)}>AI Usage</MenuLink>}
             <MenuLink href="/dashboard/recycle-bin" close={() => setOpenSettings(false)}>Recycle Bin</MenuLink>
             <MenuLink href="/dashboard/settings" close={() => setOpenSettings(false)}>All Settings</MenuLink>
             <button type="button" onClick={logout} className="mt-3 w-full cursor-pointer rounded-md border border-[var(--border)] px-3 py-2 text-xs font-medium hover:bg-[color:var(--bg-panel-2)]">Logout</button>

@@ -56,7 +56,7 @@ export default function SettingsPage() {
     </SettingsSection>
     <SettingsSection title="AI Access" description="Control whether AI-assisted features are available.">
       <SettingRow label="My AI access"><SettingsToggle label="My AI access" checked={ai?.user_ai_enabled ?? true} disabled={saving || !ai} onChange={(checked) => void update("/api/ai-settings/me", { ai_enabled: checked }, (value) => setAI(value as AISettings))} /></SettingRow>
-      {user?.role === "admin" && <SettingRow label="Account AI access"><SettingsToggle label="Account AI access" checked={ai?.tenant_ai_enabled ?? true} disabled={saving || !ai} onChange={(checked) => void update("/api/ai-settings/tenant", { ai_enabled: checked }, (value) => setAI(value as AISettings))} /></SettingRow>}
+      {(user?.role === "owner" || user?.role === "admin") && <SettingRow label="Account AI access"><SettingsToggle label="Account AI access" checked={ai?.tenant_ai_enabled ?? true} disabled={saving || !ai} onChange={(checked) => void update("/api/ai-settings/tenant", { ai_enabled: checked }, (value) => setAI(value as AISettings))} /></SettingRow>}
       {ai && !ai.effective_ai_enabled && <p className="text-xs text-[var(--text-muted)]">AI summaries are currently disabled for this account.</p>}
     </SettingsSection>
     <SettingsSection title="File Deletion" description="Choose how deleted files are handled.">
@@ -64,7 +64,7 @@ export default function SettingsPage() {
       <label className="block max-w-xs text-sm"><span className="mb-1 block text-[var(--text-muted)]">Keep deleted files</span><select value={files?.recycle_bin_retention_days ?? 30} disabled={saving || !files} onChange={(e) => void update("/api/file-settings/me", { recycle_bin_retention_days: Number(e.target.value) }, (value) => setFiles(value as FileSettings))} className="w-full cursor-pointer rounded-md border border-[var(--border)] bg-[color:var(--bg-panel-2)] px-3 py-2 disabled:cursor-not-allowed"><option value={30}>30 days</option><option value={60}>60 days</option><option value={90}>90 days</option></select></label>
       <Link href="/dashboard/recycle-bin" className="inline-block text-sm text-cyan-400 hover:underline">Open Recycle Bin</Link>
     </SettingsSection>
-    {user?.role === "admin" && <SettingsSection title="Account Administration" description="Manage users and review AI usage for your account."><div className="flex flex-wrap gap-3"><Link href="/dashboard/admin/users" className="rounded-md border border-[var(--border)] px-3 py-2 text-sm hover:bg-[color:var(--bg-panel-2)]">Add Users</Link><Link href="/dashboard/admin/llm-usage" className="rounded-md border border-[var(--border)] px-3 py-2 text-sm hover:bg-[color:var(--bg-panel-2)]">AI Usage</Link></div></SettingsSection>}
+    {(user?.role === "owner" || user?.role === "admin") && <SettingsSection title="Account Administration" description="Manage users and review AI usage for your account."><div className="flex flex-wrap gap-3"><Link href="/dashboard/admin/users" className="rounded-md border border-[var(--border)] px-3 py-2 text-sm hover:bg-[color:var(--bg-panel-2)]">Add Users</Link><Link href="/dashboard/admin/llm-usage" className="rounded-md border border-[var(--border)] px-3 py-2 text-sm hover:bg-[color:var(--bg-panel-2)]">AI Usage</Link></div></SettingsSection>}
   </div></AuthGuard>;
 }
 

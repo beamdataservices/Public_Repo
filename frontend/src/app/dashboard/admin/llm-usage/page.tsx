@@ -65,7 +65,7 @@ export default function LLMUsagePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "owner" || user?.role === "admin";
   const headers = useMemo(
     () => ({ Authorization: `Bearer ${tokens.accessToken ?? ""}` }),
     [tokens.accessToken]
@@ -108,7 +108,7 @@ export default function LLMUsagePage() {
         <header>
           <h1 className="text-xl font-semibold text-[var(--text-main)]">AI Usage</h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Estimated LLM usage and cost for your tenant.
+            Estimated LLM usage and cost for your account.
           </p>
         </header>
 

@@ -93,6 +93,42 @@ def _ensure_feature_columns():
             ALTER TABLE user_invites ADD last_sent_at DATETIMEOFFSET NULL
         END
         """,
+        """
+        IF OBJECT_ID('account_memberships', 'U') IS NOT NULL
+        BEGIN
+            INSERT INTO account_memberships (
+                id,
+                user_id,
+                tenant_id,
+                role,
+                is_active,
+                ai_enabled,
+                confirm_file_delete,
+                recycle_bin_retention_days,
+                theme_preference,
+                created_at
+            )
+            SELECT
+                NEWID(),
+                users.id,
+                users.tenant_id,
+                CASE WHEN users.role = 'admin' THEN 'owner' ELSE users.role END,
+                users.is_active,
+                users.ai_enabled,
+                users.confirm_file_delete,
+                users.recycle_bin_retention_days,
+                users.theme_preference,
+                users.created_at
+            FROM users
+            WHERE users.tenant_id IS NOT NULL
+              AND NOT EXISTS (
+                SELECT 1
+                FROM account_memberships existing
+                WHERE existing.user_id = users.id
+                  AND existing.tenant_id = users.tenant_id
+              )
+        END
+        """,
     ]
     try:
         with engine.begin() as conn:

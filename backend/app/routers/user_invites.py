@@ -7,10 +7,10 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.auth import admin_required, hash_password
+from app.auth import admin_required, hash_password, verify_password
 from app.config import get_settings
 from app.deps import get_db
-from app.models import AuditLog, Tenant, User, UserInvite, UserRole
+from app.models import AccountMembership, AuditLog, Tenant, User, UserInvite, UserRole
 from app.services.audit_log import add_audit_log
 from app.services.email_sender import send_email
 from app.services.email_templates import invitation_email
@@ -55,6 +55,17 @@ class CreateInviteOut(UserInviteOut):
 class AcceptInviteIn(BaseModel):
     token: str = Field(..., min_length=20)
     password: str = Field(..., min_length=8, max_length=128)
+
+
+class AcceptExistingInviteIn(BaseModel):
+    token: str = Field(..., min_length=20)
+    password: str
+
+
+class InvitePreviewOut(BaseModel):
+    email: str
+    account_name: str
+    existing_user: bool
 
 
 def _token_hash(token: str) -> str:
@@ -117,7 +128,13 @@ def _deliver_invite(invite: UserInvite, token: str) -> CreateInviteOut:
 @admin_router.get("/", response_model=TenantUsersOut)
 def list_tenant_users(db: Session = Depends(get_db), user: User = Depends(admin_required)):
     tenant = db.query(Tenant).filter(Tenant.id == user.tenant_id).first()
-    users = db.query(User).filter(User.tenant_id == user.tenant_id).order_by(User.created_at.asc()).all()
+    memberships = (
+        db.query(AccountMembership, User)
+        .join(User, AccountMembership.user_id == User.id)
+        .filter(AccountMembership.tenant_id == user.tenant_id)
+        .order_by(AccountMembership.created_at.asc())
+        .all()
+    )
     invites = (
         db.query(UserInvite)
         .filter(
@@ -133,13 +150,13 @@ def list_tenant_users(db: Session = Depends(get_db), user: User = Depends(admin_
         tenant_name=tenant.name if tenant else "",
         users=[
             TenantUserOut(
-                id=str(item.id),
-                email=item.email,
-                role=item.role.value,
-                is_active=bool(item.is_active),
-                created_at=item.created_at,
+                id=str(item_user.id),
+                email=item_user.email,
+                role=membership.role.value,
+                is_active=bool(membership.is_active),
+                created_at=membership.created_at,
             )
-            for item in users
+            for membership, item_user in memberships
         ],
         pending_invites=[_invite_out(item) for item in invites],
     )
@@ -149,8 +166,15 @@ def list_tenant_users(db: Session = Depends(get_db), user: User = Depends(admin_
 def create_user_invite(payload: CreateInviteIn, db: Session = Depends(get_db), user: User = Depends(admin_required)):
     _enforce_invite_rate_limit(db, user)
     email = payload.email.lower()
-    if db.query(User).filter(func.lower(User.email) == email).first():
-        raise HTTPException(status_code=409, detail="A user with this email already has an account.")
+    existing_user = db.query(User).filter(func.lower(User.email) == email).first()
+    if existing_user:
+        existing_membership = (
+            db.query(AccountMembership)
+            .filter(AccountMembership.user_id == existing_user.id, AccountMembership.tenant_id == user.tenant_id)
+            .first()
+        )
+        if existing_membership:
+            raise HTTPException(status_code=409, detail="This user is already part of this account.")
 
     existing = (
         db.query(UserInvite)
@@ -255,20 +279,26 @@ def revoke_user_invite(invite_id: str, db: Session = Depends(get_db), user: User
 
 @admin_router.delete("/{target_user_id}", response_model=dict[str, str])
 def deactivate_user(target_user_id: str, db: Session = Depends(get_db), user: User = Depends(admin_required)):
-    target = db.query(User).filter(User.id == target_user_id, User.tenant_id == user.tenant_id).first()
+    target = (
+        db.query(AccountMembership, User)
+        .join(User, AccountMembership.user_id == User.id)
+        .filter(AccountMembership.user_id == target_user_id, AccountMembership.tenant_id == user.tenant_id)
+        .first()
+    )
     if not target:
         raise HTTPException(status_code=404, detail="User not found.")
-    if target.id == user.id or target.role == UserRole.admin:
-        raise HTTPException(status_code=400, detail="Tenant admins cannot be deactivated here.")
-    target.is_active = False
+    membership, target_user = target
+    if target_user.id == user.id or membership.role in (UserRole.owner, UserRole.admin):
+        raise HTTPException(status_code=400, detail="Account owners cannot be deactivated here.")
+    membership.is_active = False
     add_audit_log(
         db,
         tenant_id=str(user.tenant_id),
         actor_user_id=str(user.id),
         action="user.deactivated",
         target_type="user",
-        target_id=str(target.id),
-        details={"email": target.email},
+        target_id=str(target_user.id),
+        details={"email": target_user.email},
     )
     db.commit()
     return {"detail": "User deactivated."}
@@ -276,23 +306,52 @@ def deactivate_user(target_user_id: str, db: Session = Depends(get_db), user: Us
 
 @admin_router.post("/{target_user_id}/reactivate", response_model=dict[str, str])
 def reactivate_user(target_user_id: str, db: Session = Depends(get_db), user: User = Depends(admin_required)):
-    target = db.query(User).filter(User.id == target_user_id, User.tenant_id == user.tenant_id).first()
+    target = (
+        db.query(AccountMembership, User)
+        .join(User, AccountMembership.user_id == User.id)
+        .filter(AccountMembership.user_id == target_user_id, AccountMembership.tenant_id == user.tenant_id)
+        .first()
+    )
     if not target:
         raise HTTPException(status_code=404, detail="User not found.")
-    if target.role == UserRole.admin:
-        raise HTTPException(status_code=400, detail="Tenant admins cannot be changed here.")
-    target.is_active = True
+    membership, target_user = target
+    if membership.role in (UserRole.owner, UserRole.admin):
+        raise HTTPException(status_code=400, detail="Account owners cannot be changed here.")
+    membership.is_active = True
     add_audit_log(
         db,
         tenant_id=str(user.tenant_id),
         actor_user_id=str(user.id),
         action="user.reactivated",
         target_type="user",
-        target_id=str(target.id),
-        details={"email": target.email},
+        target_id=str(target_user.id),
+        details={"email": target_user.email},
     )
     db.commit()
     return {"detail": "User reactivated."}
+
+
+@public_router.get("/preview", response_model=InvitePreviewOut)
+def preview_user_invite(token: str, db: Session = Depends(get_db)):
+    invite = (
+        db.query(UserInvite)
+        .filter(
+            UserInvite.token_hash == _token_hash(token),
+            UserInvite.accepted_at.is_(None),
+            UserInvite.revoked_at.is_(None),
+            UserInvite.expires_at > datetime.utcnow(),
+        )
+        .first()
+    )
+    if not invite:
+        raise HTTPException(status_code=400, detail="This invitation is invalid or has expired.")
+    tenant = db.query(Tenant).filter(Tenant.id == invite.tenant_id).first()
+    existing_user = db.query(User).filter(func.lower(User.email) == invite.email.lower()).first()
+    return InvitePreviewOut(
+        email=invite.email,
+        account_name=tenant.name if tenant else "BEAM Analytics",
+        existing_user=bool(existing_user),
+    )
 
 
 @public_router.post("/accept", response_model=dict[str, str])
@@ -310,7 +369,7 @@ def accept_user_invite(payload: AcceptInviteIn, db: Session = Depends(get_db)):
     if not invite:
         raise HTTPException(status_code=400, detail="This invitation is invalid or has expired.")
     if db.query(User).filter(func.lower(User.email) == invite.email.lower()).first():
-        raise HTTPException(status_code=409, detail="An account already exists for this email.")
+        raise HTTPException(status_code=409, detail="This email already has a BEAM login. Sign in to accept this invitation.")
 
     new_user = User(
         tenant_id=invite.tenant_id,
@@ -321,6 +380,17 @@ def accept_user_invite(payload: AcceptInviteIn, db: Session = Depends(get_db)):
     )
     db.add(new_user)
     db.flush()
+    membership = AccountMembership(
+        user_id=new_user.id,
+        tenant_id=invite.tenant_id,
+        role=UserRole.user,
+        is_active=True,
+        ai_enabled=True,
+        confirm_file_delete=True,
+        recycle_bin_retention_days=30,
+        theme_preference="light",
+    )
+    db.add(membership)
     invite.accepted_at = datetime.utcnow()
     add_audit_log(
         db,
@@ -332,3 +402,58 @@ def accept_user_invite(payload: AcceptInviteIn, db: Session = Depends(get_db)):
     )
     db.commit()
     return {"detail": "Account created. You can now sign in."}
+
+
+@public_router.post("/accept-existing", response_model=dict[str, str])
+def accept_existing_user_invite(payload: AcceptExistingInviteIn, db: Session = Depends(get_db)):
+    invite = (
+        db.query(UserInvite)
+        .filter(
+            UserInvite.token_hash == _token_hash(payload.token),
+            UserInvite.accepted_at.is_(None),
+            UserInvite.revoked_at.is_(None),
+            UserInvite.expires_at > datetime.utcnow(),
+        )
+        .first()
+    )
+    if not invite:
+        raise HTTPException(status_code=400, detail="This invitation is invalid or has expired.")
+
+    existing_user = db.query(User).filter(func.lower(User.email) == invite.email.lower()).first()
+    if not existing_user or not verify_password(payload.password, existing_user.password_hash):
+        raise HTTPException(status_code=401, detail="Sign in failed. Check the password for the invited email.")
+    existing_membership = (
+        db.query(AccountMembership)
+        .filter(AccountMembership.user_id == existing_user.id, AccountMembership.tenant_id == invite.tenant_id)
+        .first()
+    )
+    if existing_membership:
+        if not existing_membership.is_active:
+            existing_membership.is_active = True
+        invite.accepted_at = datetime.utcnow()
+        db.commit()
+        return {"detail": "Invitation accepted. You can now choose this account at sign in."}
+
+    db.add(
+        AccountMembership(
+            user_id=existing_user.id,
+            tenant_id=invite.tenant_id,
+            role=UserRole.user,
+            is_active=True,
+            ai_enabled=True,
+            confirm_file_delete=True,
+            recycle_bin_retention_days=30,
+            theme_preference="light",
+        )
+    )
+    invite.accepted_at = datetime.utcnow()
+    add_audit_log(
+        db,
+        tenant_id=str(invite.tenant_id),
+        action="invitation.accepted",
+        target_type="user",
+        target_id=str(existing_user.id),
+        details={"email": invite.email},
+    )
+    db.commit()
+    return {"detail": "Invitation accepted. You can now choose this account at sign in."}

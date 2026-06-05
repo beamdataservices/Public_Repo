@@ -1,7 +1,7 @@
 # backend/app/models.py
 from sqlalchemy import (
     Column, String, DateTime, ForeignKey, BigInteger, Boolean, Enum, Text,
-    Integer, Numeric
+    Integer, Numeric, UniqueConstraint
 )
 from sqlalchemy.dialects.mssql import UNIQUEIDENTIFIER
 from sqlalchemy.sql import func
@@ -21,6 +21,7 @@ class TenantPlan(str, enum.Enum):
 
 
 class UserRole(str, enum.Enum):
+    owner = "owner"
     admin = "admin"
     user = "user"
 
@@ -57,6 +58,25 @@ class User(Base):
     recycle_bin_retention_days = Column(Integer, nullable=False, server_default="30")
     theme_preference = Column(String(10), nullable=False, server_default="light")
 
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.sysutcdatetime())
+
+
+class AccountMembership(Base):
+    __tablename__ = "account_memberships"
+    __table_args__ = (UniqueConstraint("user_id", "tenant_id", name="uq_account_memberships_user_tenant"),)
+
+    id = Column(UNIQUEIDENTIFIER, primary_key=True, default=uuid_str)
+    user_id = Column(UNIQUEIDENTIFIER, ForeignKey("users.id"), nullable=False)
+    tenant_id = Column(UNIQUEIDENTIFIER, ForeignKey("tenants.id"), nullable=False)
+
+    role = Column(Enum(UserRole), nullable=False, server_default="user")
+    is_active = Column(Boolean, nullable=False, server_default="1")
+    ai_enabled = Column(Boolean, nullable=False, server_default="1")
+    confirm_file_delete = Column(Boolean, nullable=False, server_default="1")
+    recycle_bin_retention_days = Column(Integer, nullable=False, server_default="30")
+    theme_preference = Column(String(10), nullable=False, server_default="light")
+
+    last_accessed_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.sysutcdatetime())
 
 

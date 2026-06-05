@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import admin_required, get_current_user
 from app.deps import get_db
-from app.models import Tenant, User
+from app.models import Tenant
 
 
 router = APIRouter(prefix="/api/ai-settings", tags=["ai-settings"])
@@ -24,14 +24,9 @@ class TenantAISettingsIn(BaseModel):
     ai_enabled: bool
 
 
-def _tenant_for_user(db: Session, user: User) -> Tenant:
-    return db.query(Tenant).filter(Tenant.id == user.tenant_id).first()
-
-
-def _settings_out(db: Session, user: User) -> AISettingsOut:
-    tenant = _tenant_for_user(db, user)
-    tenant_enabled = bool(tenant.ai_enabled) if tenant else False
-    user_enabled = bool(user.ai_enabled)
+def _settings_out(current) -> AISettingsOut:
+    tenant_enabled = bool(current.tenant.ai_enabled)
+    user_enabled = bool(current.membership.ai_enabled)
     return AISettingsOut(
         tenant_ai_enabled=tenant_enabled,
         user_ai_enabled=user_enabled,
@@ -41,34 +36,31 @@ def _settings_out(db: Session, user: User) -> AISettingsOut:
 
 @router.get("", response_model=AISettingsOut)
 @router.get("/", response_model=AISettingsOut)
-def get_ai_settings(
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
-    return _settings_out(db, user)
+def get_ai_settings(current=Depends(get_current_user)):
+    return _settings_out(current)
 
 
 @router.put("/me", response_model=AISettingsOut)
 def update_my_ai_settings(
     payload: UserAISettingsIn,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    current=Depends(get_current_user),
 ):
-    user.ai_enabled = payload.ai_enabled
+    current.membership.ai_enabled = payload.ai_enabled
     db.commit()
-    db.refresh(user)
-    return _settings_out(db, user)
+    db.refresh(current.membership)
+    return _settings_out(current)
 
 
 @router.put("/tenant", response_model=AISettingsOut)
 def update_tenant_ai_settings(
     payload: TenantAISettingsIn,
     db: Session = Depends(get_db),
-    user: User = Depends(admin_required),
+    current=Depends(admin_required),
 ):
-    tenant = _tenant_for_user(db, user)
+    tenant = db.query(Tenant).filter(Tenant.id == current.tenant_id).first()
     tenant.ai_enabled = payload.ai_enabled
     db.commit()
     db.refresh(tenant)
-    db.refresh(user)
-    return _settings_out(db, user)
+    current.tenant.ai_enabled = tenant.ai_enabled
+    return _settings_out(current)
