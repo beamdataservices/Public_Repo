@@ -20,6 +20,8 @@ from app.auth import (
 from app.config import get_settings
 from app.deps import get_db
 from app.models import AccountMembership, Tenant, TenantPlan, User, UserRole
+from app.services.email_sender import send_email
+from app.services.email_templates import welcome_email
 
 
 settings = get_settings()
@@ -143,6 +145,15 @@ def _login_response(user: User, db: Session) -> LoginSelectionResponse:
     )
 
 
+def _send_welcome_email(email: str, account_name: str) -> None:
+    dashboard_url = f"{settings.FRONTEND_BASE_URL.rstrip('/')}/dashboard"
+    plain_text, html = welcome_email(account_name, dashboard_url)
+    try:
+        send_email(email, "Welcome to BEAM Analytics", plain_text, html)
+    except Exception:
+        pass
+
+
 @router.post("/register", response_model=LoginSelectionResponse)
 def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     email = str(payload.email).lower()
@@ -180,7 +191,9 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     )
     db.add(membership)
     db.flush()
-    return _login_response(user, db)
+    response = _login_response(user, db)
+    _send_welcome_email(email, tenant.name)
+    return response
 
 
 @router.post("/login", response_model=LoginSelectionResponse)

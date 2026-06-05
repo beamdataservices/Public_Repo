@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     ACS_CONNECTION_STRING: Optional[str] = None
     SMTP_FROM_EMAIL: Optional[str] = None
     EMAIL_LOGO_URL: Optional[str] = None
+    FEEDBACK_SURVEY_URL: Optional[str] = None
     INVITE_EXPIRE_HOURS: int = 72
     INVITE_MAX_PER_HOUR: int = 10
     PASSWORD_RESET_EXPIRE_MINUTES: int = 60
