@@ -326,6 +326,7 @@ export default function FileInsightsPage() {
   const [pendingFilters, setPendingFilters] = useState<FiltersState>({});
   const [loadingInsights, setLoadingInsights] = useState(true);
   const [insightsError, setInsightsError] = useState<string | null>(null);
+  const insightsRequestRef = useRef(0);
 
   const hasToken = !!tokens?.accessToken;
 
@@ -364,6 +365,8 @@ export default function FileInsightsPage() {
     async (nextFilters: FiltersState) => {
       if (!hasToken || !fileId) return;
 
+      const requestId = ++insightsRequestRef.current;
+
       try {
         setLoadingInsights(true);
         setInsightsError(null);
@@ -380,17 +383,25 @@ export default function FileInsightsPage() {
           }),
         });
 
+        if (requestId !== insightsRequestRef.current) return;
+
         if (!res.ok) {
           const text = await res.text();
           throw new Error(text || "Failed to load file overview");
         }
 
-        setInsights((await res.json()) as InsightsResponse);
+        const data = (await res.json()) as InsightsResponse;
+        if (requestId === insightsRequestRef.current) {
+          setInsights(data);
+        }
       } catch (err: unknown) {
+        if (requestId !== insightsRequestRef.current) return;
         const message = err instanceof Error ? err.message : "Failed to load file overview";
         setInsightsError(message);
       } finally {
-        setLoadingInsights(false);
+        if (requestId === insightsRequestRef.current) {
+          setLoadingInsights(false);
+        }
       }
     },
     [hasToken, fileId, selectedSheet, tokens]
@@ -404,6 +415,12 @@ export default function FileInsightsPage() {
   useEffect(() => {
     fetchInsights();
   }, [fetchInsights]);
+
+  useEffect(() => {
+    setInsights(null);
+    setInsightsError(null);
+    setHealthContext(null);
+  }, [selectedSheet]);
 
   useEffect(() => {
     const t = setTimeout(() => setFiltersState(pendingFilters), 500);

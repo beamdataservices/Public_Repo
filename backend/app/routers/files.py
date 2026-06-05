@@ -14,6 +14,7 @@ import numpy as np
 import plotly.express as px
 from urllib.parse import quote
 
+from azure.core.exceptions import ResourceNotFoundError
 from azure.storage.blob import BlobServiceClient
 from sqlalchemy.orm import Session
 
@@ -442,6 +443,35 @@ def restore_file(file_id: str, db: Session = Depends(get_db), user: User = Depen
     db.commit()
     db.refresh(file)
     return file
+
+
+@router.delete("/recycle-bin/{file_id}", status_code=status.HTTP_204_NO_CONTENT)
+def permanently_delete_file(file_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    file = (
+        db.query(FileModel)
+        .filter(
+            FileModel.id == file_id,
+            FileModel.tenant_id == user.tenant_id,
+            FileModel.deleted_by == user.id,
+            FileModel.deleted_at.is_not(None),
+            FileModel.status == "deleted",
+        )
+        .first()
+    )
+    if not file:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Deleted file not found")
+
+    try:
+        container_client.get_blob_client(file.blob_path).delete_blob()
+    except ResourceNotFoundError:
+        pass
+    except Exception as ex:
+        raise HTTPException(status_code=500, detail=f"Could not permanently delete file: {ex}")
+
+    file.status = "purged"
+    file.restore_blob_path = None
+    file.purge_after = None
+    db.commit()
 
 
 @router.get("/{file_id}", response_model=FileOut)

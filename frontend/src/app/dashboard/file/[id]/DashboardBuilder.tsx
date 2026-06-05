@@ -728,6 +728,8 @@ export default function DashboardBuilder({
   // ── Fetch column metadata ────────────────────────────────────────────────────
   useEffect(() => {
     if (!fileId || !token) return;
+    const controller = new AbortController();
+    let cancelled = false;
     setColsLoading(true);
     const url = new URL(`${API_BASE_URL}/api/files/${fileId}/insights`);
     if (sheetName) {
@@ -737,14 +739,26 @@ export default function DashboardBuilder({
     fetch(url.toString(), {
       headers: { Authorization: `Bearer ${token}` },
       method: "GET",
+      signal: controller.signal,
     })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("Could not load file columns"))))
       .then((data) => {
+        if (cancelled) return;
         setCols(data.columns ?? []);
         setColsError(null);
       })
-      .catch((err) => setColsError(err.message ?? "Failed to load columns"))
-      .finally(() => setColsLoading(false));
+      .catch((err) => {
+        if (cancelled || err.name === "AbortError") return;
+        setColsError(err.message ?? "Failed to load columns");
+      })
+      .finally(() => {
+        if (!cancelled) setColsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [fileId, sheetName, token]);
 
   const fetchReports = useCallback(async () => {

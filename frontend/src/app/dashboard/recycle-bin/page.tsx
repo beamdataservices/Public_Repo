@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useAuth } from "@/context/AuthContext";
-import { notifyFilesChanged } from "@/lib/file-events";
+import { FILES_CHANGED_EVENT, notifyFilesChanged } from "@/lib/file-events";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
@@ -26,6 +26,7 @@ export default function RecycleBinPage() {
   const [files, setFiles] = useState<RecycleBinFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const headers = useMemo(
     () => ({ Authorization: `Bearer ${tokens.accessToken ?? ""}` }),
@@ -51,6 +52,11 @@ export default function RecycleBinPage() {
     loadFiles();
   }, [loadFiles]);
 
+  useEffect(() => {
+    window.addEventListener(FILES_CHANGED_EVENT, loadFiles);
+    return () => window.removeEventListener(FILES_CHANGED_EVENT, loadFiles);
+  }, [loadFiles]);
+
   async function restoreFile(file: RecycleBinFile) {
     setRestoringId(file.id);
     try {
@@ -69,14 +75,43 @@ export default function RecycleBinPage() {
     }
   }
 
+  async function permanentlyDeleteFile(file: RecycleBinFile) {
+    if (!window.confirm(`Permanently delete "${file.original_name}"? This cannot be undone.`)) return;
+    setDeletingId(file.id);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/files/recycle-bin/${file.id}`, {
+        method: "DELETE",
+        headers,
+      });
+      if (!res.ok) throw new Error("Could not permanently delete file.");
+      setFiles((current) => current.filter((item) => item.id !== file.id));
+      notifyFilesChanged();
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not permanently delete file.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
     <AuthGuard>
       <div className="px-6 py-6 space-y-6">
-        <header>
-          <h1 className="text-xl font-semibold text-[var(--text-main)]">Recycle Bin</h1>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Deleted files remain available until their retention period expires.
-          </p>
+        <header className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-semibold text-[var(--text-main)]">Recycle Bin</h1>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">
+              Deleted files remain available until their retention period expires.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void loadFiles()}
+            disabled={loading}
+            className="shrink-0 rounded-md border border-[var(--border)] px-3 py-2 text-xs font-medium text-[var(--text-main)] hover:bg-[color:var(--bg-panel-2)] disabled:opacity-60"
+          >
+            {loading ? "Refreshing..." : "Refresh"}
+          </button>
         </header>
 
         {error && (
@@ -101,14 +136,24 @@ export default function RecycleBinPage() {
                       {file.size_bytes ? ` - ${formatSize(file.size_bytes)}` : ""}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => restoreFile(file)}
-                    disabled={restoringId === file.id}
-                    className="shrink-0 rounded-md border border-[var(--border)] px-3 py-2 text-xs font-medium text-[var(--text-main)] hover:bg-[color:var(--bg-panel-2)] disabled:opacity-60"
-                  >
-                    {restoringId === file.id ? "Restoring..." : "Restore"}
-                  </button>
+                  <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => restoreFile(file)}
+                      disabled={restoringId === file.id || deletingId === file.id}
+                      className="rounded-md border border-[var(--border)] px-3 py-2 text-xs font-medium text-[var(--text-main)] hover:bg-[color:var(--bg-panel-2)] disabled:opacity-60"
+                    >
+                      {restoringId === file.id ? "Restoring..." : "Restore"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => permanentlyDeleteFile(file)}
+                      disabled={restoringId === file.id || deletingId === file.id}
+                      className="rounded-md border border-red-500/40 px-3 py-2 text-xs font-medium text-red-300 hover:bg-red-950/30 disabled:opacity-60"
+                    >
+                      {deletingId === file.id ? "Deleting..." : "Permanently Delete"}
+                    </button>
+                  </div>
                 </div>
               ))
             )}

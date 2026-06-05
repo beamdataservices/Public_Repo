@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { FILES_CHANGED_EVENT } from "@/lib/file-events";
+import { FILES_CHANGED_EVENT, notifyFilesChanged } from "@/lib/file-events";
 
 type FileSummary = {
   id: string;
@@ -147,6 +147,7 @@ export default function SidebarFiles({ reloadFlag }: { reloadFlag: number }) {
       });
       if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
       setFiles((current) => current.filter((item) => item.id !== file.id));
+      notifyFilesChanged();
       if (pathname === `/dashboard/file/${file.id}`) router.push("/dashboard");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Delete failed");
