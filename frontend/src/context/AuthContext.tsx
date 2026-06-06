@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import {
   AccountSummary,
+  apiCreateAccount,
   apiLogin,
   apiMe,
   apiRefresh,
@@ -31,6 +32,7 @@ interface AuthContextValue {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, tenantName: string) => Promise<void>;
+  createAccount: (accountName: string) => Promise<void>;
   selectAccount: (membershipId: string) => Promise<void>;
   switchAccount: (membershipId: string) => Promise<void>;
   logout: () => void;
@@ -184,6 +186,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const createAccount = async (accountName: string) => {
+    if (!tokens.accessToken) throw new Error("You must be signed in to create an account.");
+    setLoading(true);
+    try {
+      const tr = await apiCreateAccount(tokens.accessToken, accountName);
+      applyTokens(tr);
+      await syncUser({ accessToken: tr.access_token, refreshToken: tr.refresh_token });
+      router.push("/dashboard");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const switchAccount = async (membershipId: string) => {
     if (!tokens.accessToken) return;
     setLoading(true);
@@ -218,7 +233,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, tokens, accountSelection, loading, login, register, selectAccount, switchAccount, logout, refreshIfNeeded }}>
+    <AuthContext.Provider value={{ user, tokens, accountSelection, loading, login, register, createAccount, selectAccount, switchAccount, logout, refreshIfNeeded }}>
       {children}
     </AuthContext.Provider>
   );

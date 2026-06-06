@@ -12,7 +12,7 @@ type AISettings = { tenant_ai_enabled: boolean; user_ai_enabled: boolean; effect
 type FileSettings = { confirm_file_delete: boolean; recycle_bin_retention_days: number; theme_preference: "light" | "dark" };
 
 export default function TopNav() {
-  const { user, tokens, logout, switchAccount } = useAuth();
+  const { user, tokens, logout, switchAccount, createAccount } = useAuth();
   const { theme, setTheme } = useTheme();
   const [openSettings, setOpenSettings] = useState(false);
   const [aiSettings, setAiSettings] = useState<AISettings | null>(null);
@@ -59,6 +59,21 @@ export default function TopNav() {
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not update settings");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleCreateAccount() {
+    const accountName = window.prompt("Enter a name for the new account/workspace:");
+    if (!accountName || !accountName.trim()) return;
+    setSaving(true);
+    try {
+      await createAccount(accountName.trim());
+      setOpenSettings(false);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create account");
     } finally {
       setSaving(false);
     }
@@ -111,6 +126,7 @@ export default function TopNav() {
             {(user.role === "owner" || user.role === "admin") && <MenuLink href="/dashboard/admin/users" close={() => setOpenSettings(false)}>Add Users</MenuLink>}
             {(user.role === "owner" || user.role === "admin") && <MenuLink href="/dashboard/admin/llm-usage" close={() => setOpenSettings(false)}>AI Usage</MenuLink>}
             <MenuLink href="/dashboard/recycle-bin" close={() => setOpenSettings(false)}>Recycle Bin</MenuLink>
+            <button type="button" onClick={() => void handleCreateAccount()} disabled={saving} className="mt-3 w-full cursor-pointer rounded-md border border-[var(--border)] px-3 py-2 text-xs font-medium hover:bg-[color:var(--bg-panel-2)] disabled:cursor-not-allowed disabled:opacity-60">Create New Account</button>
             <MenuLink href="/dashboard/settings" close={() => setOpenSettings(false)}>All Settings</MenuLink>
             <button type="button" onClick={logout} className="mt-3 w-full cursor-pointer rounded-md border border-[var(--border)] px-3 py-2 text-xs font-medium hover:bg-[color:var(--bg-panel-2)]">Logout</button>
           </div>}

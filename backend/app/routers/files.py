@@ -46,6 +46,7 @@ class FileOut(BaseModel):
     uploaded_at: datetime
     status: str
     size_bytes: int | None
+    uploaded_by_email: str | None = None
     workbook: Optional[Dict[str, Any]] = None
 
     class Config:
@@ -221,6 +222,30 @@ def _file_out_with_workbook(file: FileModel) -> FileOut:
     )
 
 
+def _file_out(file: FileModel, uploaded_by_email: str | None = None) -> FileOut:
+    return FileOut(
+        id=file.id,
+        original_name=file.original_name,
+        uploaded_at=file.uploaded_at,
+        status=file.status,
+        size_bytes=file.size_bytes,
+        uploaded_by_email=uploaded_by_email,
+    )
+
+
+def _recycle_file_out(file: FileModel, uploaded_by_email: str | None = None) -> RecycleBinFileOut:
+    return RecycleBinFileOut(
+        id=file.id,
+        original_name=file.original_name,
+        uploaded_at=file.uploaded_at,
+        status=file.status,
+        size_bytes=file.size_bytes,
+        uploaded_by_email=uploaded_by_email,
+        deleted_at=file.deleted_at,
+        purge_after=file.purge_after,
+    )
+
+
 def _load_dataframe_from_blob(file: FileModel, sheet_name: Optional[str] = None) -> pd.DataFrame:
     """Download a file from Azure Blob and parse into a DataFrame.
 
@@ -359,25 +384,28 @@ async def upload_file(
     db.add(db_file)
     db.commit()
     db.refresh(db_file)
-    return db_file
+    return _file_out(db_file, user.email)
 
 
 @router.get("/", response_model=List[FileOut])
 def list_files(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     _purge_expired_files(db, user)
-    return (
-        db.query(FileModel)
+    rows = (
+        db.query(FileModel, User.email)
+        .join(User, FileModel.uploaded_by == User.id)
         .filter(FileModel.tenant_id == user.tenant_id, FileModel.deleted_at.is_(None))
         .order_by(FileModel.uploaded_at.desc())
         .all()
     )
+    return [_file_out(file, email) for file, email in rows]
 
 
 @router.get("/recycle-bin/", response_model=List[RecycleBinFileOut])
 def list_recycle_bin(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     _purge_expired_files(db, user)
-    return (
-        db.query(FileModel)
+    rows = (
+        db.query(FileModel, User.email)
+        .join(User, FileModel.uploaded_by == User.id)
         .filter(
             FileModel.tenant_id == user.tenant_id,
             FileModel.deleted_by == user.id,
@@ -387,6 +415,7 @@ def list_recycle_bin(db: Session = Depends(get_db), user: User = Depends(get_cur
         .order_by(FileModel.deleted_at.desc())
         .all()
     )
+    return [_recycle_file_out(file, email) for file, email in rows]
 
 
 @router.delete("/{file_id}", status_code=status.HTTP_204_NO_CONTENT)

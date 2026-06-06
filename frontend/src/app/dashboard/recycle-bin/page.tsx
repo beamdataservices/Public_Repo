@@ -11,6 +11,7 @@ type RecycleBinFile = {
   id: string;
   original_name: string;
   size_bytes: number | null;
+  uploaded_by_email?: string | null;
   deleted_at: string;
   purge_after: string;
 };
@@ -131,6 +132,11 @@ export default function RecycleBinPage() {
                 <div key={file.id} className="flex items-center justify-between gap-4 border-b border-[var(--border)] px-4 py-3 last:border-b-0">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-[var(--text-main)]">{file.original_name}</p>
+                    {file.uploaded_by_email && (
+                      <p className="mt-1 truncate text-xs text-[var(--text-muted)]">
+                        Uploaded by {file.uploaded_by_email}
+                      </p>
+                    )}
                     <p className="mt-1 text-xs text-[var(--text-muted)]">
                       Deleted {new Date(file.deleted_at).toLocaleString()} &bull; Purges {new Date(file.purge_after).toLocaleDateString()}
                       {file.size_bytes ? ` - ${formatSize(file.size_bytes)}` : ""}

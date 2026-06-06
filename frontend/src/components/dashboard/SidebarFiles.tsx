@@ -12,6 +12,7 @@ type FileSummary = {
   uploaded_at: string;
   status: string;
   size_bytes: number | null;
+  uploaded_by_email?: string | null;
 };
 
 type FileSettings = {
@@ -205,6 +206,11 @@ export default function SidebarFiles({ reloadFlag }: { reloadFlag: number }) {
             >
               <Link href={href} className="flex-1 min-w-0">
                 <div className="truncate">{file.original_name}</div>
+                {file.uploaded_by_email && (
+                  <div className="mt-0.5 truncate text-[11px] text-(--text-muted)">
+                    Uploaded by {file.uploaded_by_email}
+                  </div>
+                )}
                 <div className="mt-0.5 text-xs text-(--text-muted) flex justify-between">
                   <span>{friendlyStatus(file.status)}</span>
                   <span>{dateLabel} &bull; {timeLabel}</span>

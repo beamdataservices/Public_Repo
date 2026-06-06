@@ -77,6 +77,10 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 
+class CreateAccountRequest(BaseModel):
+    account_name: str | None = None
+
+
 def generate_slug(name: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
     return slug or "personal"
@@ -154,6 +158,49 @@ def _send_welcome_email(email: str, account_name: str) -> None:
         pass
 
 
+def _create_owned_demo_account(db: Session, user: User, account_name: str) -> AccountMembership:
+    owned_demo_count = (
+        db.query(AccountMembership)
+        .join(Tenant, AccountMembership.tenant_id == Tenant.id)
+        .filter(
+            AccountMembership.user_id == user.id,
+            AccountMembership.role.in_([UserRole.owner, UserRole.admin]),
+            AccountMembership.is_active == True,
+            Tenant.plan == TenantPlan.demo,
+            Tenant.is_active == True,
+        )
+        .count()
+    )
+    if owned_demo_count >= 1:
+        raise HTTPException(
+            status_code=403,
+            detail="You already own a Demo account. Additional owned accounts will require Premium.",
+        )
+
+    tenant = Tenant(
+        name=account_name,
+        slug=unique_tenant_slug(db, account_name),
+        plan=TenantPlan.demo,
+        trial_ends_at=datetime.utcnow() + timedelta(days=settings.TRIAL_DAYS),
+    )
+    db.add(tenant)
+    db.flush()
+
+    membership = AccountMembership(
+        user_id=user.id,
+        tenant_id=tenant.id,
+        role=UserRole.owner,
+        is_active=True,
+        ai_enabled=True,
+        confirm_file_delete=True,
+        recycle_bin_retention_days=30,
+        theme_preference="light",
+    )
+    db.add(membership)
+    db.flush()
+    return membership
+
+
 @router.post("/register", response_model=LoginSelectionResponse)
 def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     email = str(payload.email).lower()
@@ -193,6 +240,19 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     db.flush()
     response = _login_response(user, db)
     _send_welcome_email(email, tenant.name)
+    return response
+
+
+@router.post("/accounts", response_model=TokenResponse)
+def create_account(
+    payload: CreateAccountRequest,
+    db: Session = Depends(get_db),
+    current=Depends(get_current_user),
+):
+    account_name = (payload.account_name or "").strip() or current.email.split("@", 1)[0]
+    membership = _create_owned_demo_account(db, current.user, account_name)
+    response = _issue_tokens(current.user, membership, db)
+    _send_welcome_email(current.email, account_name)
     return response
 
 

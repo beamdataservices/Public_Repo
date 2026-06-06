@@ -39,6 +39,7 @@ export interface FileItem {
   uploaded_at: string;
   status: string;
   size_bytes: number | null;
+  uploaded_by_email?: string | null;
 }
 
 async function handleJson<T>(res: Response): Promise<T> {
@@ -103,6 +104,21 @@ export async function apiSwitchAccount(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ membership_id }),
+  });
+  return handleJson<TokenResponse>(res);
+}
+
+export async function apiCreateAccount(
+  accessToken: string,
+  account_name: string
+): Promise<TokenResponse> {
+  const res = await fetch(`${API_BASE_URL}/auth/accounts`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ account_name }),
   });
   return handleJson<TokenResponse>(res);
 }
