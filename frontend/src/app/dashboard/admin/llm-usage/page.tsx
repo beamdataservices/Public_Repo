@@ -106,14 +106,18 @@ export default function LLMUsagePage() {
     <AuthGuard>
       <div className="px-6 py-6 space-y-6">
         <header>
-          <h1 className="text-xl font-semibold text-[var(--text-main)]">AI Usage</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-[var(--text-main)]">AI Usage</h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
             Estimated LLM usage and cost for your account.
           </p>
         </header>
 
         {!isAdmin && (
-          <div className="rounded-lg border border-red-500/40 bg-red-950/20 p-4 text-sm text-red-300">
+          <div
+            className="rounded-[var(--radius-sm)] border p-4 text-sm"
+            style={{ background: "var(--error-bg)", borderColor: "var(--error-border)", color: "var(--error-fg)" }}
+            role="alert"
+          >
             Admin privileges are required to view AI usage.
           </div>
         )}
@@ -125,7 +129,11 @@ export default function LLMUsagePage() {
         )}
 
         {error && (
-          <div className="rounded-lg border border-red-500/40 bg-red-950/20 p-4 text-sm text-red-300">
+          <div
+            className="rounded-[var(--radius-sm)] border p-4 text-sm"
+            style={{ background: "var(--error-bg)", borderColor: "var(--error-border)", color: "var(--error-fg)" }}
+            role="alert"
+          >
             {error}
           </div>
         )}
@@ -139,23 +147,20 @@ export default function LLMUsagePage() {
                 ["Total tokens", summary.total_tokens.toLocaleString()],
                 ["Output tokens", summary.completion_tokens.toLocaleString()],
               ].map(([label, value]) => (
-                <div
-                  key={label}
-                  className="rounded-lg border border-[var(--border)] bg-[color:var(--bg-panel)] p-4"
-                >
+                <div key={label} className="card p-4">
                   <p className="text-xs font-medium text-[var(--text-muted)]">{label}</p>
-                  <p className="mt-2 text-2xl font-semibold text-cyan-300">{value}</p>
+                  <p className="mt-2 text-2xl font-semibold tracking-tight tabular-nums text-[var(--text-main)]">{value}</p>
                 </div>
               ))}
             </section>
 
-            <section className="rounded-lg border border-[var(--border)] bg-[color:var(--bg-panel)] overflow-hidden">
-              <div className="border-b border-[var(--border)] px-4 py-3">
+            <section className="card overflow-hidden">
+              <div className="border-b border-[var(--border-subtle)] px-4 py-3">
                 <h2 className="text-sm font-semibold text-[var(--text-main)]">Usage by Model</h2>
               </div>
               <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead className="text-left text-xs uppercase tracking-wide text-[var(--text-muted)]">
+                <table className="min-w-full text-sm tabular-nums">
+                  <thead className="bg-[color:var(--bg-panel-2)] text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
                     <tr>
                       <th className="px-4 py-3">Model</th>
                       <th className="px-4 py-3">Operation</th>
@@ -166,7 +171,7 @@ export default function LLMUsagePage() {
                   </thead>
                   <tbody>
                     {summary.by_model.map((row) => (
-                      <tr key={`${row.model}-${row.operation}`} className="border-t border-[var(--border)]">
+                      <tr key={`${row.model}-${row.operation}`} className="border-t border-[var(--border-subtle)] transition-colors duration-150 hover:bg-[color:var(--bg-panel-2)]">
                         <td className="px-4 py-3 text-[var(--text-main)]">{row.model}</td>
                         <td className="px-4 py-3 text-[var(--text-muted)]">{row.operation}</td>
                         <td className="px-4 py-3 text-[var(--text-main)]">{row.calls.toLocaleString()}</td>
@@ -186,13 +191,13 @@ export default function LLMUsagePage() {
               </div>
             </section>
 
-            <section className="rounded-lg border border-[var(--border)] bg-[color:var(--bg-panel)] overflow-hidden">
-              <div className="border-b border-[var(--border)] px-4 py-3">
+            <section className="card overflow-hidden">
+              <div className="border-b border-[var(--border-subtle)] px-4 py-3">
                 <h2 className="text-sm font-semibold text-[var(--text-main)]">Usage by User</h2>
               </div>
               <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead className="text-left text-xs uppercase tracking-wide text-[var(--text-muted)]">
+                <table className="min-w-full text-sm tabular-nums">
+                  <thead className="bg-[color:var(--bg-panel-2)] text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
                     <tr>
                       <th className="px-4 py-3">User</th>
                       <th className="px-4 py-3">Calls</th>
@@ -203,7 +208,7 @@ export default function LLMUsagePage() {
                   </thead>
                   <tbody>
                     {summary.by_user.map((row) => (
-                      <tr key={row.user_id ?? row.email} className="border-t border-[var(--border)]">
+                      <tr key={row.user_id ?? row.email} className="border-t border-[var(--border-subtle)] transition-colors duration-150 hover:bg-[color:var(--bg-panel-2)]">
                         <td className="px-4 py-3 text-[var(--text-main)]">{row.email}</td>
                         <td className="px-4 py-3 text-[var(--text-main)]">{row.calls.toLocaleString()}</td>
                         <td className="px-4 py-3 text-[var(--text-main)]">{row.total_tokens.toLocaleString()}</td>
@@ -223,13 +228,13 @@ export default function LLMUsagePage() {
               </div>
             </section>
 
-            <section className="rounded-lg border border-[var(--border)] bg-[color:var(--bg-panel)] overflow-hidden">
-              <div className="border-b border-[var(--border)] px-4 py-3">
+            <section className="card overflow-hidden">
+              <div className="border-b border-[var(--border-subtle)] px-4 py-3">
                 <h2 className="text-sm font-semibold text-[var(--text-main)]">Recent Events</h2>
               </div>
               <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead className="text-left text-xs uppercase tracking-wide text-[var(--text-muted)]">
+                <table className="min-w-full text-sm tabular-nums">
+                  <thead className="bg-[color:var(--bg-panel-2)] text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
                     <tr>
                       <th className="px-4 py-3">Time</th>
                       <th className="px-4 py-3">User</th>
@@ -241,13 +246,17 @@ export default function LLMUsagePage() {
                   </thead>
                   <tbody>
                     {events.map((event) => (
-                      <tr key={event.id} className="border-t border-[var(--border)]">
+                      <tr key={event.id} className="border-t border-[var(--border-subtle)] transition-colors duration-150 hover:bg-[color:var(--bg-panel-2)]">
                         <td className="px-4 py-3 text-[var(--text-muted)]">
                           {new Date(event.created_at).toLocaleString()}
                         </td>
                         <td className="px-4 py-3 text-[var(--text-main)]">{event.user_email ?? "Unknown user"}</td>
                         <td className="px-4 py-3 text-[var(--text-main)]">{event.operation}</td>
-                        <td className="px-4 py-3 text-[var(--text-main)]">{event.status}</td>
+                        <td className="px-4 py-3">
+                          <span className={`badge ${event.status === "success" ? "badge-success" : "badge-error"}`}>
+                            {event.status}
+                          </span>
+                        </td>
                         <td className="px-4 py-3 text-[var(--text-main)]">{event.total_tokens.toLocaleString()}</td>
                         <td className="px-4 py-3 text-[var(--text-main)]">{formatCost(event.estimated_cost)}</td>
                       </tr>

@@ -431,7 +431,7 @@ export default function FileInsightsPage() {
 
   if (!hasToken) {
     return (
-      <div className="px-6 py-6 text-sm text-red-400">
+      <div className="px-6 py-6 text-sm" style={{ color: "var(--error-fg)" }}>
         You must be signed in to view this page.
       </div>
     );
