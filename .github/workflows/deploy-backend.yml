@@ -96,7 +96,10 @@ jobs:
                 ACS_CONNECTION_STRING=secretref:acs-connection-string \
                 SMTP_FROM_EMAIL=DoNotReply@beamdataservices.com \
                 FRONTEND_BASE_URL=http://localhost:3000 \
-                EMAIL_LOGO_URL=https://beamanalyticsstg.blob.core.windows.net/photos-beam/New%20Full%20BEAM%20logo%2005-13-2026.png
+                EMAIL_LOGO_URL=https://beamanalyticsstg.blob.core.windows.net/photos-beam/New%20Full%20BEAM%20logo%2005-13-2026.png \
+                STRIPE_SECRET_KEY=secretref:stripe-secret-key \
+                STRIPE_WEBHOOK_SECRET=secretref:stripe-webhook-secret \
+                STRIPE_PREMIUM_PRICE_ID=secretref:stripe-premium-price-id
 
       # -------------------------
       # 9) Route 100% traffic to latest revision
