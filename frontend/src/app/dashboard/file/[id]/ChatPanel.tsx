@@ -47,14 +47,14 @@ const AGENT_LABELS: Record<string, string> = {
 
 const QUICK_PROMPTS: Record<string, string[]> = {
   overview: [
-    "Summarise this file for me",
+    "Summarize this file for me",
     "What should I look at first?",
     "What are the key patterns in this data?",
   ],
   health: [
     "Why is my score this low?",
     "What's the most important issue to fix?",
-    "Give me a prioritised action plan",
+    "Give me a prioritized action plan",
   ],
   explore: [
     "What charts would work best for this data?",
@@ -80,11 +80,7 @@ function makeId() {
 function AgentBadge({ agents }: { agents: string[] }) {
   if (!agents.length) return null;
   const label = agents.map((a) => AGENT_LABELS[a] ?? a).join(" · ");
-  return (
-    <span className="inline-block rounded-full bg-cyan-500/15 border border-cyan-500/30 px-2 py-0.5 text-xs font-medium text-cyan-400 mb-1.5">
-      {label}
-    </span>
-  );
+  return <span className="badge badge-info mb-1.5">{label}</span>;
 }
 
 function TypingDots() {
@@ -107,7 +103,10 @@ function MessageBubble({ msg }: { msg: Message }) {
   if (isUser) {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-cyan-500 px-3.5 py-2.5 text-sm text-white leading-relaxed">
+        <div
+          className="max-w-[85%] rounded-2xl rounded-tr-sm px-3.5 py-2.5 text-sm leading-relaxed"
+          style={{ background: "var(--accent)", color: "var(--text-on-accent)" }}
+        >
           {msg.content}
         </div>
       </div>
@@ -118,12 +117,12 @@ function MessageBubble({ msg }: { msg: Message }) {
     <div className="flex flex-col items-start">
       {msg.agents && msg.agents.length > 0 && <AgentBadge agents={msg.agents} />}
       <div
-        className={[
-          "max-w-[90%] rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-sm leading-relaxed",
+        className="max-w-[90%] rounded-2xl rounded-tl-sm border px-3.5 py-2.5 text-sm leading-relaxed"
+        style={
           msg.isError
-            ? "bg-red-950/40 border border-red-500/30 text-red-300"
-            : "bg-[color:var(--bg-panel-2)] border border-[var(--border)] text-[var(--text-main)]",
-        ].join(" ")}
+            ? { background: "var(--error-bg)", borderColor: "var(--error-border)", color: "var(--error-fg)" }
+            : { background: "var(--bg-panel-2)", borderColor: "var(--border-subtle)", color: "var(--text-main)" }
+        }
       >
         {msg.loading ? (
           <TypingDots />
@@ -159,9 +158,15 @@ export default function ChatPanel({
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
 
-  // Column types loaded once on first open
+  // Column types loaded on first open and reloaded when the sheet changes,
+  // so the AI always has context for the data the user is looking at
   const [colTypes, setColTypes] = useState<ColType[]>([]);
   const colsLoadedRef = useRef(false);
+  const loadedSheetRef = useRef<string | null | undefined>(undefined);
+
+  // The welcome summary is seeded once per page load; clearing the chat
+  // returns to the default quick-prompt state instead of re-seeding it
+  const welcomeSeededRef = useRef(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -179,10 +184,12 @@ export default function ChatPanel({
     }
   }, [open]);
 
-  // ── Load column types once on first open ──────────────────────────────────
+  // ── Load column types on first open and when the sheet changes ────────────
   useEffect(() => {
-    if (!open || colsLoadedRef.current || !fileId || !token) return;
+    if (!open || !fileId || !token) return;
+    if (colsLoadedRef.current && loadedSheetRef.current === sheetName) return;
     colsLoadedRef.current = true;
+    loadedSheetRef.current = sheetName;
 
     const url = new URL(`${API_BASE_URL}/api/files/${fileId}/insights`);
     if (sheetName) url.searchParams.set("sheet_name", sheetName);
@@ -195,9 +202,10 @@ export default function ChatPanel({
       .catch(() => {});
   }, [open, fileId, token, sheetName]);
 
-  // ── Show initial AI summary as welcome message ────────────────────────────
+  // ── Show initial AI summary as welcome message (once per page load) ────────
   useEffect(() => {
-    if (!open || !initialSummary || messages.length > 0) return;
+    if (!open || !initialSummary || welcomeSeededRef.current || messages.length > 0) return;
+    welcomeSeededRef.current = true;
     setMessages([
       {
         id: makeId(),
@@ -372,7 +380,14 @@ export default function ChatPanel({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 bg-cyan-500 hover:bg-cyan-400 text-white font-bold rounded-full shadow-xl transition-all px-4 py-3 text-sm flex items-center gap-2"
+        className="fixed bottom-6 right-6 flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold transition-colors duration-150"
+        style={{
+          background: "var(--accent)",
+          color: "var(--text-on-accent)",
+          boxShadow: "var(--shadow-3)",
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover)")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
         title="Ask the AI assistant a question about your data"
         aria-label="Open AI Assistant"
       >
@@ -385,13 +400,15 @@ export default function ChatPanel({
   // ── Open panel ────────────────────────────────────────────────────────────
   return (
     <div
-      className="fixed right-6 bottom-6 w-[22rem] sm:w-[26rem] rounded-2xl border border-[var(--border)] bg-[color:var(--bg-panel)] shadow-2xl flex flex-col overflow-hidden"
-      style={{ maxHeight: "75vh", zIndex: 50 }}
+      className="fixed right-6 bottom-6 w-[22rem] sm:w-[26rem] rounded-[var(--radius-md)] border border-[var(--border)] bg-[color:var(--bg-panel)] flex flex-col overflow-hidden"
+      style={{ maxHeight: "75vh", zIndex: 50, boxShadow: "var(--shadow-3)" }}
+      role="dialog"
+      aria-label="AI Assistant"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] bg-[color:var(--bg-panel)] shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)] bg-[color:var(--bg-panel)] shrink-0">
         <div className="flex items-center gap-2">
-          <span className="text-cyan-400 text-base leading-none">✦</span>
+          <span className="text-base leading-none" style={{ color: "var(--info-fg)" }}>✦</span>
           <span className="text-sm font-semibold text-[var(--text-main)]">AI Assistant</span>
         </div>
         <div className="flex items-center gap-2">
@@ -401,7 +418,7 @@ export default function ChatPanel({
               onClick={clearConversation}
               title="Clear conversation"
               aria-label="Clear conversation"
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] px-1.5 py-1 rounded transition-colors"
+              className="btn btn-ghost btn-sm"
             >
               Clear
             </button>
@@ -409,7 +426,8 @@ export default function ChatPanel({
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] px-1.5 py-1 rounded transition-colors"
+            className="btn btn-ghost btn-sm"
+            aria-label="Close AI Assistant"
           >
             ✕
           </button>
@@ -430,7 +448,7 @@ export default function ChatPanel({
                   type="button"
                   onClick={() => sendMessage(prompt)}
                   disabled={streaming}
-                  className="w-full text-left rounded-xl border border-[var(--border)] bg-[color:var(--bg-main)] hover:border-cyan-500/40 hover:bg-cyan-500/5 px-3.5 py-2.5 text-sm text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
+                  className="w-full text-left rounded-[var(--radius-sm)] border border-[var(--border)] bg-[color:var(--bg-panel-2)] px-3.5 py-2.5 text-sm text-[var(--text-secondary)] transition-colors duration-150 hover:border-[var(--focus-ring)] hover:bg-[var(--accent-soft)] hover:text-[var(--text-main)]"
                 >
                   {prompt}
                 </button>
@@ -444,7 +462,7 @@ export default function ChatPanel({
       </div>
 
       {/* Input */}
-      <div className="shrink-0 border-t border-[var(--border)] px-3 py-3">
+      <div className="shrink-0 border-t border-[var(--border-subtle)] px-3 py-3">
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
           <input
             ref={inputRef}
@@ -455,12 +473,12 @@ export default function ChatPanel({
             placeholder={streaming ? "Responding…" : "Ask a question…"}
             disabled={streaming}
             maxLength={500}
-            className="flex-1 rounded-xl border border-[var(--border)] bg-[color:var(--bg-main)] px-3 py-2 text-sm text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-cyan-400 disabled:opacity-60"
+            className="input flex-1"
           />
           <button
             type="submit"
             disabled={!input.trim() || streaming}
-            className="shrink-0 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-white text-xs font-semibold px-3 py-2 transition-colors"
+            className="btn btn-primary btn-sm shrink-0"
             aria-label="Send"
           >
             Send

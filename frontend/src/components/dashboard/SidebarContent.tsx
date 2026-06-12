@@ -25,7 +25,7 @@ export default function SidebarContent() {
 
   if (!tokens?.accessToken) {
     return (
-      <div className="px-4 py-2 text-xs text-red-500">
+      <div className="px-4 py-2 text-xs" style={{ color: "var(--error-fg)" }}>
         Not authenticated
       </div>
     );
@@ -58,7 +58,7 @@ export default function SidebarContent() {
     <div className="flex-1 overflow-y-auto px-4 py-3 space-y-6">
 
       {/* Upload Section */}
-      <section className="border border-[var(--border)] bg-[color:var(--bg-panel)] p-4 rounded-lg">
+      <section className="card p-4">
         <h2 className="font-semibold text-[var(--text-main)] text-sm mb-2">
           Upload a File
         </h2>
@@ -70,7 +70,7 @@ export default function SidebarContent() {
               type="file"
               accept=".csv,.xlsx"
               onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
-              className="block w-full text-sm text-[var(--text-main)] file:mr-3 file:border-0 file:bg-cyan-500 file:text-[var(--dark-text)] file:font-semibold file:rounded file:px-3 file:py-1.5 file:cursor-pointer hover:file:bg-cyan-400"
+              className="block w-full text-sm text-[var(--text-muted)] file:mr-3 file:cursor-pointer file:rounded-[var(--radius-sm)] file:border-0 file:bg-[var(--accent)] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[var(--text-on-accent)] file:transition-colors hover:file:bg-[var(--accent-hover)]"
             />
           </label>
 
@@ -83,13 +83,20 @@ export default function SidebarContent() {
           <button
             type="submit"
             disabled={!selectedFile || uploading}
-            className="w-full bg-cyan-500 hover:bg-cyan-400 text-[var(--dark-text)] font-semibold rounded-md py-2 text-sm disabled:opacity-50 transition-colors"
+            className="btn btn-primary w-full"
           >
             {uploading ? "Uploading…" : "Upload File"}
           </button>
 
           {error && (
-            <p className="rounded-md border border-red-500/40 bg-red-950/20 px-2 py-1.5 text-xs text-red-300">
+            <p
+              className="rounded-[var(--radius-sm)] border px-2 py-1.5 text-xs"
+              style={{
+                background: "var(--error-bg)",
+                borderColor: "var(--error-border)",
+                color: "var(--error-fg)",
+              }}
+            >
               {error}
             </p>
           )}

@@ -7,7 +7,7 @@ Flow per request:
   3. Specialist agent streams tokens directly to the client
   4. Log LLM usage at end of stream
 
-The orchestrator is intentionally lightweight — it adds ~300ms before the first
+The orchestrator is intentionally lightweight - it adds ~300ms before the first
 token arrives, which is acceptable given that users see the agent label appear
 before the response begins.
 """
@@ -219,7 +219,7 @@ def chat_with_file(
 
 
 # ---------------------------------------------------------------------------
-# Explain issue endpoint (no orchestrator — intent is known)
+# Explain issue endpoint (no orchestrator - intent is known)
 # ---------------------------------------------------------------------------
 
 @router.post("/{file_id}/explain-issue")
@@ -317,7 +317,7 @@ def explain_issue(
 
 
 # ---------------------------------------------------------------------------
-# Action plan endpoint (no orchestrator — intent is known)
+# Action plan endpoint (no orchestrator - intent is known)
 # ---------------------------------------------------------------------------
 
 @router.post("/{file_id}/action-plan")
@@ -413,7 +413,7 @@ def action_plan(
 
 
 # ---------------------------------------------------------------------------
-# Chart narrative endpoint (no orchestrator — intent is known)
+# Chart narrative endpoint (no orchestrator - intent is known)
 # ---------------------------------------------------------------------------
 
 @router.post("/{file_id}/chart-narrative")

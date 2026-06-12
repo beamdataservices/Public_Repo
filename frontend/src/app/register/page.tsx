@@ -25,9 +25,9 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[var(--bg-main)]">
-      <div className="w-full max-w-md rounded-xl border border-[var(--border)] bg-[color:var(--bg-panel)] p-8 shadow-xl">
-        <h1 className="mb-2 text-2xl font-semibold text-[var(--text-main)]">
+    <main className="flex min-h-screen items-center justify-center bg-[var(--bg-main)] px-4">
+      <div className="card w-full max-w-md p-8" style={{ boxShadow: "var(--shadow-2)" }}>
+        <h1 className="mb-1 text-2xl font-semibold tracking-tight text-[var(--text-main)]">
           Create your account
         </h1>
         <p className="mb-6 text-sm text-[var(--text-muted)]">
@@ -35,71 +35,78 @@ export default function RegisterPage() {
         </p>
 
         {error && (
-          <div className="mb-4 rounded-md border border-red-500/60 bg-red-950/40 px-3 py-2 text-sm text-red-200">
+          <div
+            className="mb-4 rounded-[var(--radius-sm)] border px-3 py-2 text-sm"
+            style={{
+              background: "var(--error-bg)",
+              borderColor: "var(--error-border)",
+              color: "var(--error-fg)",
+            }}
+            role="alert"
+          >
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Tenant name */}
           <div>
-            <label className="mb-1 block text-sm text-[var(--text-main)]">
+            <label htmlFor="tenant" className="field-label">
               Company name
               <span className="ml-1 text-xs text-[var(--text-muted)]">(optional)</span>
             </label>
             <input
+              id="tenant"
               type="text"
               value={tenantName}
               onChange={(e) => setTenantName(e.target.value)}
-              className="w-full rounded-md border border-[var(--border)] bg-[var(--bg-main)] px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+              className="input"
             />
             <p className="mt-1 text-xs text-[var(--text-muted)]">
               Leave blank to use the first part of your email as your workspace name.
             </p>
           </div>
 
-          {/* Email */}
           <div>
-            <label className="mb-1 block text-sm text-[var(--text-main)]">
+            <label htmlFor="email" className="field-label">
               Admin email
             </label>
             <input
+              id="email"
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-md border border-[var(--border)] bg-[var(--bg-main)] px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+              className="input"
             />
           </div>
 
-          {/* Password */}
           <div>
-            <label className="mb-1 block text-sm text-[var(--text-main)]">
+            <label htmlFor="password" className="field-label">
               Password
             </label>
             <input
+              id="password"
               type="password"
               required
               minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-md border border-[var(--border)] bg-[var(--bg-main)] px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+              className="input"
             />
           </div>
 
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="mt-2 w-full rounded-md bg-cyan-500 px-3 py-2 text-sm font-semibold text-[var(--dark-text)] hover:bg-cyan-400 disabled:opacity-60"
-          >
+          <button type="submit" disabled={loading} className="btn btn-primary mt-2 w-full">
             {loading ? "Creating account..." : "Create account"}
           </button>
         </form>
 
-        <p className="mt-4 text-center text-xs text-[var(--text-muted)]">
+        <p className="mt-5 text-center text-xs text-[var(--text-muted)]">
           Already have an account?{" "}
-          <Link href="/login" className="text-cyan-300 hover:underline">
+          <Link
+            href="/login"
+            className="font-medium hover:underline"
+            style={{ color: "var(--link)" }}
+          >
             Sign in
           </Link>
         </p>

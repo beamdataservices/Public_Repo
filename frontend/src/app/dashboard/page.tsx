@@ -13,7 +13,7 @@ export default function DashboardPage() {
           </h1>
           <p className="mt-2 text-sm text-[var(--text-muted)] leading-relaxed">
             BEAM helps you understand the health and quality of your business data
-            — without needing a data team.
+            - without needing a data team.
           </p>
         </div>
 
@@ -43,11 +43,15 @@ export default function DashboardPage() {
                 'Switch to the "Data Health" tab to see a quality score out of 100, plain-English explanations of any issues found, and a field-by-field breakdown. No data background required.',
             },
           ].map((item) => (
-            <div
-              key={item.step}
-              className="flex gap-4 rounded-xl border border-[var(--border)] bg-[color:var(--bg-panel)] p-4"
-            >
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-sm font-bold text-cyan-300">
+            <div key={item.step} className="card flex gap-4 p-4">
+              <div
+                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold"
+                style={{
+                  background: "var(--accent-soft)",
+                  border: "1px solid var(--border)",
+                  color: "var(--link)",
+                }}
+              >
                 {item.step}
               </div>
               <div>
@@ -63,17 +67,11 @@ export default function DashboardPage() {
         </div>
 
         {/* Supported formats */}
-        <div className="mt-8 rounded-xl border border-[var(--border)] bg-[color:var(--bg-panel)] p-4">
-          <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-2">
-            Supported file types
-          </p>
-          <div className="flex gap-3 text-sm">
-            <span className="rounded-md border border-[var(--border)] px-2 py-1 text-[var(--text-main)]">
-              CSV
-            </span>
-            <span className="rounded-md border border-[var(--border)] px-2 py-1 text-[var(--text-main)]">
-              Excel (.xlsx)
-            </span>
+        <div className="card mt-8 p-4">
+          <p className="field-label">Supported file types</p>
+          <div className="flex gap-2 text-sm">
+            <span className="badge badge-neutral">CSV</span>
+            <span className="badge badge-neutral">Excel (.xlsx)</span>
           </div>
           <p className="mt-2 text-xs text-[var(--text-muted)]">
             Maximum file size: 50 MB

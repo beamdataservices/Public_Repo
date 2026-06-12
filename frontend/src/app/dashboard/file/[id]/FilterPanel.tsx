@@ -35,20 +35,12 @@ export default function FilterPanel({
 
         <div className="flex items-center gap-2">
           {onApply && (
-            <button
-              onClick={onApply}
-              className="text-xs rounded-md border border-[var(--border)] px-2 py-1 text-[var(--text-main)] hover:bg-[color:var(--bg-panel-2)]"
-              type="button"
-            >
+            <button onClick={onApply} className="btn btn-secondary btn-sm" type="button">
               Apply
             </button>
           )}
 
-          <button
-            onClick={onClear}
-            className="text-xs text-[var(--text-muted)] hover:text-[var(--text-main)]"
-            type="button"
-          >
+          <button onClick={onClear} className="btn btn-ghost btn-sm" type="button">
             Clear All
           </button>
         </div>
@@ -56,13 +48,11 @@ export default function FilterPanel({
 
       {/* Filter Inputs */}
       {filterKeys.map((col) => (
-        <div key={col} className="flex flex-col gap-1">
-          <label className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
-            {col}
-          </label>
+        <div key={col} className="flex flex-col">
+          <label className="field-label">{col}</label>
 
           <select
-            className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-panel)] px-2 py-1.5 text-sm text-[var(--text-main)]"
+            className="input px-2 py-1.5"
             value={selected[col] ?? ""}
             onChange={(e) => onChange(col, e.target.value || null)}
           >

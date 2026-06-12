@@ -14,13 +14,14 @@ export default function Sidebar({
     <aside
       className={`${
         open ? "w-80" : "w-10"
-      } bg-[color:var(--bg-panel)] border-r border-[var(--border)] transition-all duration-300 flex flex-col`}
+      } bg-[color:var(--bg-panel)] border-r border-[var(--border-subtle)] transition-all duration-300 flex flex-col`}
     >
       {/* Toggle Button */}
       <button
         onClick={() => setOpen(!open)}
-        className="flex h-10 w-full items-center justify-center border-b border-[var(--border)] text-sm font-semibold tracking-wide text-[var(--text-muted)] hover:text-[var(--text-main)]"
+        className="flex h-10 w-full items-center justify-center border-b border-[var(--border-subtle)] text-sm font-semibold tracking-wide text-[var(--text-muted)] transition-colors duration-150 hover:text-[var(--text-main)]"
         type="button"
+        aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
       >
         {open ? "← Collapse" : "→"}
       </button>

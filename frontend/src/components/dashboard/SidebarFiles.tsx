@@ -176,7 +176,11 @@ export default function SidebarFiles({ reloadFlag }: { reloadFlag: number }) {
       </div>
 
       {loading && <div className="px-4 py-2 text-xs text-(--text-muted)">Loading files...</div>}
-      {error && !loading && <div className="px-4 py-2 text-xs text-red-500">{error}</div>}
+      {error && !loading && (
+        <div className="px-4 py-2 text-xs" style={{ color: "var(--error-fg)" }}>
+          {error}
+        </div>
+      )}
       {!loading && !error && files.length === 0 && (
         <div className="px-4 py-2 text-xs text-(--text-muted)">No files uploaded yet.</div>
       )}
@@ -195,14 +199,15 @@ export default function SidebarFiles({ reloadFlag }: { reloadFlag: number }) {
             <div
               key={file.id}
               className={[
-                "group rounded-md px-2 py-2 text-sm",
-                "border border-transparent",
-                "hover:bg-(--bg-panel-2) hover:border-(--border)",
+                "group rounded-[var(--radius-sm)] px-2.5 py-2 text-sm",
+                "border border-transparent transition-colors duration-150",
+                "hover:bg-(--bg-panel-2)",
                 "flex items-start gap-2",
                 isActive
-                  ? "bg-(--bg-panel-2) border-(--accent) text-(--text-main)"
-                  : "text-(--text-main)",
+                  ? "bg-(--accent-soft) text-(--text-main) font-medium"
+                  : "text-(--text-secondary)",
               ].join(" ")}
+              style={isActive ? { borderColor: "var(--border)", boxShadow: "inset 3px 0 0 var(--focus-ring)" } : undefined}
             >
               <Link href={href} className="flex-1 min-w-0">
                 <div className="truncate">{file.original_name}</div>
@@ -221,9 +226,9 @@ export default function SidebarFiles({ reloadFlag }: { reloadFlag: number }) {
                 <button
                   type="button"
                   className={[
-                    "h-7 w-7 rounded border border-(--border)",
-                    "opacity-0 group-hover:opacity-100 transition-opacity",
-                    "hover:bg-(--bg-panel) text-(--text-main)",
+                    "h-7 w-7 rounded-[6px] border border-(--border)",
+                    "opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-150",
+                    "hover:bg-(--bg-panel) hover:border-(--border-strong) text-(--text-secondary)",
                     isDownloading ? "opacity-100 cursor-wait" : "",
                   ].join(" ")}
                   onClick={(e) => {
@@ -240,11 +245,11 @@ export default function SidebarFiles({ reloadFlag }: { reloadFlag: number }) {
                 <button
                   type="button"
                   className={[
-                    "h-7 w-7 rounded border border-(--border)",
-                    "opacity-0 group-hover:opacity-100 transition-opacity",
-                    "hover:bg-red-950/30 text-red-400",
+                    "h-7 w-7 rounded-[6px] border border-(--border)",
+                    "opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-150",
                     isDeleting ? "opacity-100 cursor-wait" : "",
                   ].join(" ")}
+                  style={{ color: "var(--error-fg)" }}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();

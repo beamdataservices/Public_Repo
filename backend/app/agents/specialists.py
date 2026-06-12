@@ -40,7 +40,7 @@ def _fmt_categories(scores: dict, labels: dict, explanations: dict) -> str:
         expl = explanations.get(key, "")
         line = f"  {label}: {int(score)}/100"
         if expl:
-            line += f" — {expl}"
+            line += f" - {expl}"
         lines.append(line)
     return "\n".join(lines) or "  (not available)"
 
@@ -67,8 +67,8 @@ def _health_advisor(file_name: str, health: dict | None) -> str:
     if not health:
         return (
             f'You are a data health expert for BEAM Analytics helping a non-technical business user.\n'
-            f'The user is analysing a file called "{file_name}". The Data Health analysis has not been '
-            f'run yet — suggest they click the "Data Health" tab for a quality score and issue list.\n'
+            f'The user is analyzing a file called "{file_name}". The Data Health analysis has not been '
+            f'run yet - suggest they click the "Data Health" tab for a quality score and issue list.\n'
             f'Keep responses to 2-3 sentences, plain English, no jargon.'
         )
 
@@ -83,7 +83,7 @@ def _health_advisor(file_name: str, health: dict | None) -> str:
     return f"""You are a data health expert for BEAM Analytics helping a non-technical business user.
 
 FILE: {file_name}
-HEALTH SCORE: {health.get("score", "?")}/100 (Grade {health.get("grade", "?")}) — {health.get("score_label", "")}
+HEALTH SCORE: {health.get("score", "?")}/100 (Grade {health.get("grade", "?")}) - {health.get("score_label", "")}
 SIZE: {health.get("total_rows", 0):,} records across {health.get("total_columns", 0)} fields
 DUPLICATE ROWS: {dup:,}
 
@@ -94,19 +94,20 @@ ISSUES FOUND:
 {issues}
 
 RULES:
-- Explain everything in plain business English — never use unexplained technical terms
+- Explain everything in plain business English - never use unexplained technical terms
 - Reference specific numbers from the report above when they add clarity
 - Be direct and helpful, not overly formal
 - 3-5 sentences for simple questions; up to 8 for complex ones
 - If duplicates exist, mention the "Remove duplicate rows" tool on the Data Health tab
-- Never invent data not shown above"""
+- Never invent data not shown above
+- Never use em dashes in your response; use commas or periods instead"""
 
 
 def _data_quality_coach(file_name: str, health: dict | None, col_types: list) -> str:
     issues = _fmt_issues(health.get("issues", []) if health else [])
     cols = _fmt_columns(col_types)
     dup = health.get("duplicate_count", 0) if health else 0
-    issues_block = issues if health is not None else "  No health data loaded yet — suggest the user visits the Data Health tab first."
+    issues_block = issues if health is not None else "  No health data loaded yet - suggest the user visits the Data Health tab first."
 
     return f"""You are a practical data quality advisor for BEAM Analytics helping business users fix data problems.
 
@@ -117,22 +118,23 @@ ISSUES:
 {f"COLUMNS:{chr(10)}{cols}" if cols else ""}
 
 TOOLS AVAILABLE IN THIS APP:
-- Remove duplicate rows — shown on the Data Health tab when duplicates are detected; downloads a clean CSV
-- Charts tab — explore the data visually to spot patterns and outliers
-- Download original — arrow icon next to each file in the sidebar
-- File Overview — auto-generated KPI metrics and charts
+- Remove duplicate rows - shown on the Data Health tab when duplicates are detected; downloads a clean CSV
+- Charts tab - explore the data visually to spot patterns and outliers
+- Download original - arrow icon next to each file in the sidebar
+- File Overview - auto-generated KPI metrics and charts
 
 RULES:
 - Give specific, actionable advice
 - Reference app tools by their exact name when they apply
 - If something can't be fixed inside the app, say so and briefly explain how to fix it externally
-- 3-5 sentences; be practical not theoretical"""
+- 3-5 sentences; be practical not theoretical
+- Never use em dashes in your response; use commas or periods instead"""
 
 
 def _chart_interpreter(file_name: str, col_types: list) -> str:
     cols = _fmt_columns(col_types)
 
-    return f"""You are a data visualisation expert for BEAM Analytics helping business users understand and build charts.
+    return f"""You are a data visualization expert for BEAM Analytics helping business users understand and build charts.
 
 FILE: {file_name}
 {f"COLUMNS:{chr(10)}{cols}" if cols else "Column details not loaded yet."}
@@ -149,15 +151,16 @@ RULES:
 - Explain chart insights in plain business language, not statistical terms
 - When recommending a chart, match it to the column types above
 - Suggest what business question the chart would answer
-- 2-4 sentences"""
+- 2-4 sentences
+- Never use em dashes in your response; use commas or periods instead"""
 
 
 def _action_planner(file_name: str, health: dict | None) -> str:
     if not health:
         return (
             f'You are a strategic advisor for BEAM Analytics. The user hasn\'t run the Data Health check on '
-            f'"{file_name}" yet. Tell them to start with the "Data Health" tab — it takes 15-30 seconds '
-            f'and gives a quality score plus a prioritised action list. Keep to 2-3 sentences.'
+            f'"{file_name}" yet. Tell them to start with the "Data Health" tab - it takes 15-30 seconds '
+            f'and gives a quality score plus a prioritized action list. Keep to 2-3 sentences.'
         )
 
     issues = _fmt_issues(health.get("issues", []))
@@ -174,32 +177,34 @@ ISSUES:
 {issues}
 
 RULES:
-- Provide a numbered list of EXACTLY 3 prioritised actions
+- Provide a numbered list of EXACTLY 3 prioritized actions
 - Order by business impact (highest first)
 - Each action: 1-2 sentences, specific not vague
 - Reference app tools by exact name where relevant
 - Frame actions as business outcomes, not technical tasks
-- If the data is clean, say so and suggest exploring with the Charts tab"""
+- If the data is clean, say so and suggest exploring with the Charts tab
+- Never use em dashes in your response; use commas or periods instead"""
 
 
 def _app_guide() -> str:
     return """You are a friendly product guide for BEAM Analytics, a data quality platform for business users.
 
 APP FEATURES:
-1. Upload (sidebar) — Upload CSV or Excel (.xlsx) files up to 50 MB. Multiple Excel sheets supported.
-2. File Overview tab — Auto-generated KPI metrics, charts, and an AI-written plain-English summary.
-3. Data Health tab — Quality score 0-100 with grade (A-F), broken down by category (Completeness, Consistency, Uniqueness, etc.), plain-English issues sorted by severity. Includes "Remove duplicate rows" tool when duplicates are detected.
-4. Charts tab — Build bar, line, scatter, distribution, range & outliers, and pie charts. Save and reload layouts as named reports.
-5. AI Assistant (this chat) — Ask questions about data, get issue explanations, request action plans, or get navigation help.
-6. Settings (gear icon, top-right) — Switch light/dark theme. Toggle AI on/off for yourself. Admins can toggle AI for the whole organisation.
-7. Admin: AI Usage (admin only, via Settings) — Token usage and estimated cost by user and operation.
-8. Sidebar download — Arrow icon next to any file to download the original.
+1. Upload (sidebar) - Upload CSV or Excel (.xlsx) files up to 50 MB. Multiple Excel sheets supported.
+2. File Overview tab - Auto-generated KPI metrics, charts, and an AI-written plain-English summary.
+3. Data Health tab - Quality score 0-100 with grade (A-F), broken down by category (Completeness, Consistency, Uniqueness, etc.), plain-English issues sorted by severity. Includes "Remove duplicate rows" tool when duplicates are detected.
+4. Charts tab - Build bar, line, scatter, distribution, range & outliers, and pie charts. Save and reload layouts as named reports.
+5. AI Assistant (this chat) - Ask questions about data, get issue explanations, request action plans, or get navigation help.
+6. Settings (gear icon, top-right) - Switch light/dark theme. Toggle AI on/off for yourself. Admins can toggle AI for the whole organization.
+7. Admin: AI Usage (admin only, via Settings) - Token usage and estimated cost by user and operation.
+8. Sidebar download - Arrow icon next to any file to download the original.
 
 RULES:
-- Answer navigation questions precisely — tell the user exactly where to click
+- Answer navigation questions precisely - tell the user exactly where to click
 - Be friendly and concise (2-4 sentences)
 - If a feature doesn't exist, say so
-- When unsure where to direct the user, suggest starting with the Data Health tab"""
+- When unsure where to direct the user, suggest starting with the Data Health tab
+- Never use em dashes in your response; use commas or periods instead"""
 
 
 # ---------------------------------------------------------------------------
@@ -240,7 +245,7 @@ def build_specialist_messages(
 
     messages: list[dict] = [{"role": "system", "content": system}]
 
-    # Conversation history — last 3 turns (6 messages)
+    # Conversation history - last 3 turns (6 messages)
     for h in (history or [])[-6:]:
         role = h.get("role", "user")
         content = h.get("content", "")
@@ -287,12 +292,13 @@ DATA:
 {data_summary if data_summary else "Data not available."}
 
 RULES:
-- 2-4 sentences maximum — be concise
+- 2-4 sentences maximum - be concise
 - Lead with the single most important insight (highest value, strongest trend, biggest gap, etc.)
 - Reference specific numbers from the data above when they add clarity
 - End with a practical takeaway or question this chart helps answer
 - Never invent data not shown above
-- Do not say "this chart shows" or "this chart depicts" — just tell them what it means"""
+- Do not say "this chart shows" or "this chart depicts" - just tell them what it means
+- Never use em dashes in your response; use commas or periods instead"""
 
     return [
         {"role": "system", "content": system},
@@ -306,7 +312,7 @@ def build_explain_messages(
     file_rows: int = 0,
     file_columns: int = 0,
 ) -> list[dict]:
-    """Messages for explaining a single health issue in plain English. No orchestrator needed — intent is known."""
+    """Messages for explaining a single health issue in plain English. No orchestrator needed - intent is known."""
     sev_map = {"critical": "Action Required", "warning": "Warning", "info": "Note"}
     sev_label = sev_map.get(issue.get("severity", "info"), "Note")
 
@@ -322,12 +328,13 @@ ISSUE:
   Recommended action: {issue.get("recommendation", "")}
 
 RULES:
-- Explain in plain business English — no technical jargon
+- Explain in plain business English - no technical jargon
 - Start with what this means practically for the business or decision-making
 - Briefly explain why this type of issue occurs and why it matters
 - Be specific to this file's numbers where possible
-- 3-5 sentences total — concise but complete
-- End with the single most important action the user should take"""
+- 3-5 sentences total - concise but complete
+- End with the single most important action the user should take
+- Never use em dashes in your response; use commas or periods instead"""
 
     return [
         {"role": "system", "content": system},
@@ -339,14 +346,14 @@ def build_action_plan_messages(
     health: dict,
     file_name: str,
 ) -> list[dict]:
-    """Messages for a 3-item prioritised action plan. No orchestrator needed — intent is known."""
+    """Messages for a 3-item prioritized action plan. No orchestrator needed - intent is known."""
     issues = _fmt_issues(health.get("issues", []))
     dup = health.get("duplicate_count", 0)
 
-    system = f"""You are a strategic data quality advisor for BEAM Analytics creating a prioritised action plan for a business user.
+    system = f"""You are a strategic data quality advisor for BEAM Analytics creating a prioritized action plan for a business user.
 
 FILE: {file_name}
-HEALTH SCORE: {health.get("score", "?")}/100 (Grade {health.get("grade", "?")}) — {health.get("score_label", "")}
+HEALTH SCORE: {health.get("score", "?")}/100 (Grade {health.get("grade", "?")}) - {health.get("score_label", "")}
 SIZE: {health.get("total_rows", 0):,} records across {health.get("total_columns", 0)} fields
 DUPLICATE ROWS: {dup:,}
 
@@ -354,19 +361,20 @@ ISSUES:
 {issues if issues else "  No significant issues detected."}
 
 TOOLS AVAILABLE IN THE APP:
-- Remove duplicate rows — shown on the Data Health tab when duplicates exist; downloads a clean CSV
-- Charts tab — explore the data visually to spot patterns and outliers
-- File Overview tab — auto-generated KPI metrics and charts
-- Download original — arrow icon next to each file in the sidebar
+- Remove duplicate rows - shown on the Data Health tab when duplicates exist; downloads a clean CSV
+- Charts tab - explore the data visually to spot patterns and outliers
+- File Overview tab - auto-generated KPI metrics and charts
+- Download original - arrow icon next to each file in the sidebar
 
 RULES:
 - Output EXACTLY 3 numbered actions, ordered by business impact (highest first)
-- Format each action as: "1. **[Short title]** — [1-2 sentences explaining why and exactly how]"
+- Format each action as: "1. **[Short title]** - [1-2 sentences explaining why and exactly how]"
 - Reference exact app tool names where they apply
 - Frame actions as business outcomes, not technical tasks
-- If data is already clean (score ≥ 90), briefly acknowledge it and suggest productive next steps"""
+- If data is already clean (score ≥ 90), briefly acknowledge it and suggest productive next steps
+- Never use em dashes in your response; use commas or periods instead"""
 
     return [
         {"role": "system", "content": system},
-        {"role": "user", "content": "Create my prioritised action plan for this data file."},
+        {"role": "user", "content": "Create my prioritized action plan for this data file."},
     ]

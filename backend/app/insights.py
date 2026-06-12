@@ -308,7 +308,7 @@ def compute_kpis(df: pd.DataFrame) -> dict:
         if not _is_id_like(c, df[c])
     ]
 
-    # Rank by coefficient of variation (most variable first — more interesting)
+    # Rank by coefficient of variation (most variable first - more interesting)
     ranked = sorted(numeric_cols, key=lambda c: _col_variance_rank(df, c), reverse=True)
 
     for col in ranked[: MAX_KPI_CARDS - 1]:  # -1 because Total Records is already in
@@ -396,7 +396,7 @@ def build_charts(df: pd.DataFrame) -> dict:
             text=["100%"] * len(labels), textposition="outside",
         ))
         fig.update_layout(
-            title="All Fields Complete — No Missing Data Found",
+            title="All Fields Complete - No Missing Data Found",
             xaxis_title="Completeness (%)",
             yaxis={"autorange": "reversed"},
             margin={"l": 10, "r": 50, "t": 50, "b": 40},
@@ -443,7 +443,7 @@ def build_charts(df: pd.DataFrame) -> dict:
             )
             charts[f"timeseries_{val_col}"] = safe_fig(fig)
         except Exception:
-            pass  # Time series failed silently — fall through to histograms
+            pass  # Time series failed silently - fall through to histograms
 
     # -----------------------------------------------------------------------
     # 3. Distribution of key numeric columns (skip if time-series was built)

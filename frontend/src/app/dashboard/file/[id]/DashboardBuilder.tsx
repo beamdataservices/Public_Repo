@@ -72,7 +72,7 @@ type ChartMeta = {
 const CHART_META: Record<ChartType, ChartMeta> = {
   bar: {
     label: "Bar Chart",
-    hint: "Compare totals or averages across categories — great for ranking regions, products, or teams.",
+    hint: "Compare totals or averages across categories - great for ranking regions, products, or teams.",
     needsX: true,
     needsY: false,
     showAgg: true,
@@ -82,7 +82,7 @@ const CHART_META: Record<ChartType, ChartMeta> = {
   },
   line: {
     label: "Line Chart",
-    hint: "Show how a number changes over time — ideal for tracking trends week over week or month over month.",
+    hint: "Show how a number changes over time - ideal for tracking trends week over week or month over month.",
     needsX: true,
     needsY: true,
     showAgg: true,
@@ -92,7 +92,7 @@ const CHART_META: Record<ChartType, ChartMeta> = {
   },
   scatter: {
     label: "Scatter Plot",
-    hint: "Find correlations — do higher sales reps also have higher deal sizes? Plot two numbers to find out.",
+    hint: "Find correlations - do higher sales reps also have higher deal sizes? Plot two numbers to find out.",
     needsX: true,
     needsY: true,
     showAgg: false,
@@ -102,17 +102,17 @@ const CHART_META: Record<ChartType, ChartMeta> = {
   },
   histogram: {
     label: "Distribution",
-    hint: "See the spread of a number — are most values clustered together or spread wide? Great for spotting outliers.",
+    hint: "See the spread of a number - are most values clustered together or spread wide? Great for spotting outliers.",
     needsX: true,
     needsY: false,
     showAgg: false,
     showSplitBy: false,
-    xLabel: "Number to analyse",
+    xLabel: "Number to analyze",
     yLabel: "",
   },
   box: {
     label: "Range & Outliers",
-    hint: "Show the typical range and spot extreme values — useful for comparing performance spread across teams or periods.",
+    hint: "Show the typical range and spot extreme values - useful for comparing performance spread across teams or periods.",
     needsX: false,
     needsY: true,
     showAgg: false,
@@ -122,7 +122,7 @@ const CHART_META: Record<ChartType, ChartMeta> = {
   },
   pie: {
     label: "Pie Chart",
-    hint: "Show how a total is divided — what share of revenue comes from each product or region?",
+    hint: "Show how a total is divided - what share of revenue comes from each product or region?",
     needsX: true,
     needsY: false,
     showAgg: false,
@@ -198,6 +198,10 @@ async function streamSSE(
 }
 
 type PlotTrace = Record<string, unknown>;
+
+// Session cache for AI chart narratives, keyed by chart config + data, so
+// re-narrating an unchanged chart doesn't repeat the API call (and its cost).
+const narrativeCache = new Map<string, string>();
 
 function extractDataSummary(fig: PlotFigure): string {
   if (!fig.data?.length) return "";
@@ -290,12 +294,12 @@ function ColSelect({
     <label className="flex flex-col gap-1 min-w-0">
       <span className="text-xs uppercase tracking-wide font-medium text-[var(--text-muted)]">
         {label}
-        {required && <span className="text-red-400 ml-0.5">*</span>}
+        {required && <span className="ml-0.5" style={{ color: "var(--error-fg)" }}>*</span>}
       </span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-main)] px-2 py-1.5 text-sm text-[var(--text-main)] focus:outline-none focus:border-cyan-400"
+        className="input px-2 py-1.5"
       >
         <option value="">{placeholder}</option>
         {cols.map((c) => (
@@ -343,13 +347,31 @@ function ChartCard({
     setNarrative("");
   }, [renderedFig]);
 
-  function handleNarrate() {
+  function handleNarrate(forceRefresh = false) {
     if (!renderedFig || narrateState === "loading") return;
+
+    const dataSummary = extractDataSummary(renderedFig);
+    const cacheKey = [
+      fileId, cfg.chart_type, cfg.x, cfg.y, cfg.agg, cfg.color_by, dataSummary,
+    ].join("::");
+
+    if (!forceRefresh) {
+      const cached = narrativeCache.get(cacheKey);
+      if (cached) {
+        setNarrative(cached);
+        setNarrateState("done");
+        return;
+      }
+    }
+
     setNarrative("");
     setNarrateState("loading");
 
     const controller = new AbortController();
     narrateAbortRef.current = controller;
+
+    let streamed = "";
+    let hadError = false;
 
     streamSSE(
       `${API_BASE_URL}/api/files/${fileId}/chart-narrative`,
@@ -359,12 +381,15 @@ function ChartCard({
         x_label: cfg.x ? friendly(cfg.x) : "",
         y_label: cfg.y ? friendly(cfg.y) : "",
         agg: cfg.agg,
-        data_summary: extractDataSummary(renderedFig),
+        data_summary: dataSummary,
       },
       token,
-      (text) => setNarrative((prev) => prev + text),
-      (msg) => { setNarrative(msg); setNarrateState("error"); },
-      () => setNarrateState((s) => s !== "error" ? "done" : "error"),
+      (text) => { streamed += text; setNarrative((prev) => prev + text); },
+      (msg) => { hadError = true; setNarrative(msg); setNarrateState("error"); },
+      () => {
+        setNarrateState((s) => s !== "error" ? "done" : "error");
+        if (!hadError && streamed) narrativeCache.set(cacheKey, streamed);
+      },
       controller.signal,
     );
   }
@@ -390,14 +415,14 @@ function ChartCard({
   const isReady = !validationError;
 
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[color:var(--bg-panel)] overflow-hidden">
+    <div className="card overflow-hidden">
 
       {/* ── Header ── */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)]">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border-subtle)]">
         <input
           value={cfg.title}
           onChange={(e) => onUpdate({ title: e.target.value })}
-          className="flex-1 bg-transparent text-sm font-semibold text-[var(--text-main)] focus:outline-none"
+          className="flex-1 bg-transparent text-sm font-semibold text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none"
           placeholder="e.g. Revenue by Region"
           maxLength={80}
         />
@@ -406,15 +431,16 @@ function ChartCard({
             type="button"
             onClick={onGenerate}
             disabled={!isReady || isRunning}
-            className="rounded-md bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-white text-xs font-semibold px-3 py-1.5 transition-colors"
+            className="btn btn-primary btn-sm"
           >
             {isRunning ? "Building…" : renderedFig ? "Update Chart" : "Build Chart"}
           </button>
           <button
             type="button"
             onClick={onRemove}
-            className="text-[var(--text-muted)] hover:text-red-400 text-xs px-2 py-1.5 rounded transition-colors"
+            className="btn btn-ghost btn-sm"
             title="Remove this chart"
+            aria-label="Remove this chart"
           >
             ✕
           </button>
@@ -422,7 +448,7 @@ function ChartCard({
       </div>
 
       {/* ── Config ── */}
-      <div className="px-4 py-3 bg-[color:var(--bg-main)] border-b border-[var(--border)]">
+      <div className="px-4 py-3 bg-[color:var(--bg-panel-2)] border-b border-[var(--border-subtle)]">
 
         {/* Chart type pills */}
         <div className="flex flex-wrap gap-1.5 mb-3">
@@ -431,12 +457,21 @@ function ChartCard({
               key={t}
               type="button"
               onClick={() => onUpdate({ chart_type: t, x: "", y: "", color_by: "" })}
-              className={[
-                "rounded-md px-2.5 py-1 text-xs font-medium transition-colors border",
+              aria-pressed={cfg.chart_type === t}
+              className="rounded-full px-3 py-1 text-xs font-medium transition-colors duration-150 border"
+              style={
                 cfg.chart_type === t
-                  ? "bg-cyan-500/20 border-cyan-500/60 text-cyan-300"
-                  : "border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-main)]",
-              ].join(" ")}
+                  ? {
+                      background: "var(--accent-soft)",
+                      borderColor: "var(--focus-ring)",
+                      color: "var(--link)",
+                    }
+                  : {
+                      borderColor: "var(--border)",
+                      color: "var(--text-muted)",
+                      background: "var(--bg-panel)",
+                    }
+              }
             >
               {CHART_META[t].label}
             </button>
@@ -469,12 +504,12 @@ function ChartCard({
           {meta.showAgg && (
             <label className="flex flex-col gap-1">
               <span className="text-xs uppercase tracking-wide font-medium text-[var(--text-muted)]">
-                Summarise by
+                Summarize by
               </span>
               <select
                 value={cfg.agg}
                 onChange={(e) => onUpdate({ agg: e.target.value as AggFunc })}
-                className="w-full rounded-md border border-[var(--border)] bg-[color:var(--bg-main)] px-2 py-1.5 text-sm text-[var(--text-main)] focus:outline-none focus:border-cyan-400"
+                className="input px-2 py-1.5"
               >
                 {AGG_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value} title={o.desc}>
@@ -503,7 +538,14 @@ function ChartCard({
 
         {/* Validation */}
         {validationError && (
-          <div className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-300">
+          <div
+            className="mt-2 rounded-[var(--radius-sm)] border px-3 py-1.5 text-xs"
+            style={{
+              background: "var(--warning-bg)",
+              borderColor: "var(--warning-border)",
+              color: "var(--warning-fg)",
+            }}
+          >
             {validationError}
           </div>
         )}
@@ -531,39 +573,44 @@ function ChartCard({
             {/* Narrative */}
             <div className="flex items-center justify-end gap-2">
               {narrateState === "idle" && (
-                <button
-                  type="button"
-                  onClick={handleNarrate}
-                  className="text-xs text-cyan-400 hover:text-cyan-300 border border-cyan-500/30 hover:border-cyan-400/60 rounded-lg px-2.5 py-1 transition-colors"
-                >
+                <button type="button" onClick={() => handleNarrate()} className="btn btn-accent-outline btn-sm">
                   ✦ Narrate
                 </button>
               )}
               {narrateState === "loading" && (
-                <span className="text-xs text-[var(--text-muted)] animate-pulse">Analysing…</span>
+                <span className="text-xs text-[var(--text-muted)] animate-pulse">Analyzing…</span>
               )}
               {narrateState === "done" && (
                 <>
-                  <button type="button" onClick={handleNarrate} className="text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors">Refresh</button>
-                  <button type="button" onClick={handleDismissNarrative} className="text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors">Hide</button>
+                  <button type="button" onClick={() => handleNarrate(true)} className="btn btn-ghost btn-sm">Refresh</button>
+                  <button type="button" onClick={handleDismissNarrative} className="btn btn-ghost btn-sm">Hide</button>
                 </>
               )}
               {narrateState === "error" && (
-                <button type="button" onClick={handleDismissNarrative} className="text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors">Dismiss</button>
+                <button type="button" onClick={handleDismissNarrative} className="btn btn-ghost btn-sm">Dismiss</button>
               )}
             </div>
 
             {narrateState !== "idle" && (
-              <div className={`rounded-lg border px-3 py-2.5 text-sm leading-relaxed ${
-                narrateState === "error"
-                  ? "border-red-500/30 bg-red-950/20 text-red-300"
-                  : "border-cyan-500/20 bg-cyan-950/20 text-[var(--text-main)]"
-              }`}>
-                <p className="text-xs font-semibold text-cyan-400 mb-1">✦ AI Narrative</p>
+              <div
+                className="rounded-[var(--radius-sm)] border px-3 py-2.5 text-sm leading-relaxed"
+                style={
+                  narrateState === "error"
+                    ? { background: "var(--error-bg)", borderColor: "var(--error-border)", color: "var(--error-fg)" }
+                    : { background: "var(--info-bg)", borderColor: "var(--info-border)", color: "var(--text-main)" }
+                }
+              >
+                <p className="mb-1 text-xs font-semibold" style={{ color: "var(--info-fg)" }}>
+                  ✦ AI Narrative
+                </p>
                 {narrateState === "loading" && !narrative && (
                   <span className="inline-flex gap-1 items-center h-4">
                     {[0, 1, 2].map((i) => (
-                      <span key={i} className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                      <span
+                        key={i}
+                        className="w-1.5 h-1.5 rounded-full animate-bounce"
+                        style={{ animationDelay: `${i * 0.15}s`, background: "var(--info-fg)" }}
+                      />
                     ))}
                   </span>
                 )}
@@ -576,7 +623,7 @@ function ChartCard({
         {!isRunning && !renderedFig && isReady && (
           <div className="flex flex-col items-center justify-center py-8 gap-2 text-center border border-dashed border-[var(--border)] rounded-lg">
             <p className="text-xs text-[var(--text-muted)]">
-              Your chart is configured — click{" "}
+              Your chart is configured - click{" "}
               <strong className="text-[var(--text-main)]">Build Chart</strong> to generate it.
             </p>
           </div>
@@ -706,24 +753,27 @@ export default function DashboardBuilder({
 
   const suggestions = useMemo(() => buildSuggestions(cols), [cols]);
 
-  const plotLayout = useMemo(
-    () => ({
+  const plotLayout = useMemo(() => {
+    // Read the chart tokens so Plotly tracks the active theme exactly
+    const fallback =
+      theme === "dark"
+        ? { text: "#a9b4c6", grid: "rgba(230, 234, 242, 0.08)" }
+        : { text: "#3d4a5f", grid: "rgba(16, 24, 40, 0.08)" };
+    const styles =
+      typeof document !== "undefined" ? getComputedStyle(document.documentElement) : null;
+    const text = styles?.getPropertyValue("--chart-text").trim() || fallback.text;
+    const grid = styles?.getPropertyValue("--chart-grid").trim() || fallback.grid;
+
+    return {
       autosize: true,
       paper_bgcolor: "rgba(0,0,0,0)",
       plot_bgcolor: "rgba(0,0,0,0)",
-      font: { color: theme === "dark" ? "#e2e8f0" : "#0f172a", size: 12 },
-      xaxis: {
-        gridcolor: theme === "dark" ? "rgba(226,232,240,0.1)" : "rgba(15,23,42,0.08)",
-        zerolinecolor: theme === "dark" ? "rgba(226,232,240,0.15)" : "rgba(15,23,42,0.12)",
-      },
-      yaxis: {
-        gridcolor: theme === "dark" ? "rgba(226,232,240,0.1)" : "rgba(15,23,42,0.08)",
-        zerolinecolor: theme === "dark" ? "rgba(226,232,240,0.15)" : "rgba(15,23,42,0.12)",
-      },
+      font: { color: text, size: 12 },
+      xaxis: { gridcolor: grid, zerolinecolor: grid },
+      yaxis: { gridcolor: grid, zerolinecolor: grid },
       margin: { l: 50, r: 20, t: 20, b: 50 },
-    }),
-    [theme]
-  );
+    };
+  }, [theme]);
 
   // ── Fetch column metadata ────────────────────────────────────────────────────
   useEffect(() => {
@@ -873,7 +923,7 @@ export default function DashboardBuilder({
         const missing = toRun.filter((c) => !newFigs[c.id]);
         if (missing.length) {
           setRunError(
-            `${missing.length} chart${missing.length > 1 ? "s" : ""} couldn't be built — check that the selected fields are compatible with the chart type chosen.`
+            `${missing.length} chart${missing.length > 1 ? "s" : ""} couldn't be built - check that the selected fields are compatible with the chart type chosen.`
           );
         }
       } catch (err: unknown) {
@@ -1040,7 +1090,7 @@ export default function DashboardBuilder({
 
   if (colsError) {
     return (
-      <div className="rounded-xl border border-red-500/40 bg-red-950/20 p-5 text-sm text-red-300">
+      <div className="rounded-[var(--radius-md)] border p-5 text-sm" style={{ background: "var(--error-bg)", borderColor: "var(--error-border)", color: "var(--error-fg)" }}>
         Could not load field information: {colsError}
       </div>
     );
@@ -1055,7 +1105,7 @@ export default function DashboardBuilder({
         <div>
           <h2 className="text-lg font-semibold text-[var(--text-main)]">Build Your Charts</h2>
           <p className="mt-0.5 text-sm text-[var(--text-muted)]">
-            Turn your data into charts — no formulas, no SQL, no waiting on your analyst.
+            Turn your data into charts - no formulas, no SQL, no waiting on your analyst.
           </p>
         </div>
 
@@ -1065,7 +1115,7 @@ export default function DashboardBuilder({
               type="button"
               onClick={generateAll}
               disabled={anyRunning}
-              className="rounded-md border border-cyan-500/50 bg-cyan-500/10 hover:bg-cyan-500/20 disabled:opacity-40 text-cyan-300 text-sm font-medium px-4 py-2 transition-colors"
+              className="btn btn-accent-outline"
             >
               {anyRunning ? "Building…" : `Generate All (${validChartCount})`}
             </button>
@@ -1074,7 +1124,7 @@ export default function DashboardBuilder({
             type="button"
             onClick={addBlankChart}
             disabled={cols.length === 0}
-            className="rounded-md bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-white text-sm font-semibold px-4 py-2 transition-colors"
+            className="btn btn-primary"
           >
             + Add Chart
           </button>
@@ -1082,25 +1132,21 @@ export default function DashboardBuilder({
       </div>
 
       {/* Saved report controls */}
-      <div className="rounded-lg border border-[var(--border)] bg-[color:var(--bg-panel)] p-3">
+      <div className="card p-3">
         <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr_auto] lg:items-end">
-          <label className="flex flex-col gap-1">
-            <span className="text-xs uppercase tracking-wide font-medium text-[var(--text-muted)]">
-              Report name
-            </span>
+          <label className="flex flex-col">
+            <span className="field-label">Report name</span>
             <input
               value={reportName}
               onChange={(e) => setReportName(e.target.value)}
-              className="rounded-md border border-[var(--border)] bg-[color:var(--bg-main)] px-3 py-2 text-sm text-[var(--text-main)] focus:outline-none focus:border-cyan-400"
+              className="input"
               placeholder="e.g. Executive KPI dashboard"
               maxLength={200}
             />
           </label>
 
-          <label className="flex flex-col gap-1">
-            <span className="text-xs uppercase tracking-wide font-medium text-[var(--text-muted)]">
-              Load saved report
-            </span>
+          <label className="flex flex-col">
+            <span className="field-label">Load saved report</span>
             <select
               value={currentReportId ?? ""}
               onChange={(e) => {
@@ -1114,7 +1160,7 @@ export default function DashboardBuilder({
                 }
               }}
               disabled={reportsLoading}
-              className="rounded-md border border-[var(--border)] bg-[color:var(--bg-main)] px-3 py-2 text-sm text-[var(--text-main)] focus:outline-none focus:border-cyan-400"
+              className="input"
             >
               <option value="">{reportsLoading ? "Loading reports..." : "Choose report"}</option>
               {reports.map((report) => (
@@ -1130,7 +1176,7 @@ export default function DashboardBuilder({
               type="button"
               onClick={() => saveReport("save")}
               disabled={savingReport || !charts.length || (!!currentReportId && !currentReportDirty)}
-              className="rounded-md bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-white text-sm font-semibold px-3 py-2 transition-colors"
+              className="btn btn-primary"
             >
               {savingReport ? "Saving..." : currentReportId ? "Overwrite" : "Save Report"}
             </button>
@@ -1139,7 +1185,7 @@ export default function DashboardBuilder({
                 type="button"
                 onClick={() => saveReport("save-as")}
                 disabled={savingReport || !charts.length}
-                className="rounded-md border border-[var(--border)] text-[var(--text-main)] hover:bg-[color:var(--bg-panel-2)] disabled:opacity-40 text-sm px-3 py-2 transition-colors"
+                className="btn btn-secondary"
               >
                 Save As
               </button>
@@ -1148,7 +1194,12 @@ export default function DashboardBuilder({
               <button
                 type="button"
                 onClick={deleteCurrentReport}
-                className="rounded-md border border-red-500/40 text-red-300 hover:bg-red-500/10 text-sm px-3 py-2 transition-colors"
+                className="btn"
+                style={{
+                  border: "1px solid var(--error-border)",
+                  color: "var(--error-fg)",
+                  background: "transparent",
+                }}
               >
                 Delete
               </button>
@@ -1159,7 +1210,14 @@ export default function DashboardBuilder({
 
       {/* ── Error banner ── */}
       {(runError || reportError) && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-300 flex items-start justify-between gap-3">
+        <div
+          className="flex items-start justify-between gap-3 rounded-[var(--radius-sm)] border px-4 py-2 text-xs"
+          style={{
+            background: "var(--warning-bg)",
+            borderColor: "var(--warning-border)",
+            color: "var(--warning-fg)",
+          }}
+        >
           <span>{runError || reportError}</span>
           <button
             type="button"
@@ -1167,7 +1225,7 @@ export default function DashboardBuilder({
               setRunError(null);
               setReportError(null);
             }}
-            className="shrink-0 text-amber-400 hover:text-amber-200"
+            className="shrink-0 font-semibold hover:opacity-70"
             aria-label="Dismiss"
           >
             ✕
@@ -1197,15 +1255,15 @@ export default function DashboardBuilder({
                     key={i}
                     type="button"
                     onClick={() => addFromSuggestion(s)}
-                    className="text-left rounded-xl border border-[var(--border)] bg-[color:var(--bg-panel)] hover:border-cyan-500/50 hover:bg-cyan-500/5 p-4 transition-colors group"
+                    className="group rounded-[var(--radius-md)] border border-[var(--border)] bg-[color:var(--bg-panel)] p-4 text-left transition-all duration-150 hover:border-[var(--focus-ring)] hover:shadow-[var(--shadow-2)]"
                   >
-                    <p className="text-sm font-semibold text-[var(--text-main)] group-hover:text-cyan-300 transition-colors">
+                    <p className="text-sm font-semibold text-[var(--text-main)] transition-colors duration-150 group-hover:text-[var(--link)]">
                       {s.label}
                     </p>
                     <p className="mt-1 text-xs text-[var(--text-muted)] leading-relaxed">
                       {s.description}
                     </p>
-                    <p className="mt-2 text-xs text-cyan-500 font-medium">
+                    <p className="mt-2 text-xs font-medium" style={{ color: "var(--link)" }}>
                       {CHART_META[s.config.chart_type].label} →
                     </p>
                   </button>
@@ -1228,19 +1286,19 @@ export default function DashboardBuilder({
           <div className="flex flex-wrap justify-center gap-2 pt-2 border-t border-[var(--border)]">
             {numCols.length > 0 && (
               <span className="text-xs text-[var(--text-muted)]">
-                <span className="inline-block w-2 h-2 rounded-full bg-cyan-400 mr-1" />
+                <span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "var(--focus-ring)" }} />
                 {numCols.length} number field{numCols.length > 1 ? "s" : ""}
               </span>
             )}
             {catCols.length > 0 && (
               <span className="text-xs text-[var(--text-muted)]">
-                <span className="inline-block w-2 h-2 rounded-full bg-slate-400 mr-1" />
+                <span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "var(--text-muted)" }} />
                 {catCols.length} category field{catCols.length > 1 ? "s" : ""}
               </span>
             )}
             {dateCols.length > 0 && (
               <span className="text-xs text-[var(--text-muted)]">
-                <span className="inline-block w-2 h-2 rounded-full bg-purple-400 mr-1" />
+                <span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "var(--score-good)" }} />
                 {dateCols.length} date field{dateCols.length > 1 ? "s" : ""}
               </span>
             )}
@@ -1276,20 +1334,20 @@ export default function DashboardBuilder({
           <div className="flex flex-wrap gap-4 text-xs text-[var(--text-muted)]">
             {numCols.length > 0 && (
               <span>
-                <span className="inline-block w-2 h-2 rounded-full bg-cyan-400 mr-1" />
-                Number fields ({numCols.length}) — use for values, Y axis, distribution charts
+                <span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "var(--focus-ring)" }} />
+                Number fields ({numCols.length}) - use for values, Y axis, distribution charts
               </span>
             )}
             {catCols.length > 0 && (
               <span>
-                <span className="inline-block w-2 h-2 rounded-full bg-slate-400 mr-1" />
-                Category fields ({catCols.length}) — use for grouping, X axis, pie slices
+                <span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "var(--text-muted)" }} />
+                Category fields ({catCols.length}) - use for grouping, X axis, pie slices
               </span>
             )}
             {dateCols.length > 0 && (
               <span>
-                <span className="inline-block w-2 h-2 rounded-full bg-purple-400 mr-1" />
-                Date fields ({dateCols.length}) — use on the X axis of line charts for trends
+                <span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "var(--score-good)" }} />
+                Date fields ({dateCols.length}) - use on the X axis of line charts for trends
               </span>
             )}
           </div>
