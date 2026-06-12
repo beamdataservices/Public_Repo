@@ -104,8 +104,9 @@ export default function AccountBillingPage() {
     setWorking(true);
     setError(null);
     setMessage(null);
+    const checkoutUrl = `${API_BASE_URL}/api/billing/checkout-session`;
     try {
-      const res = await fetch(`${API_BASE_URL}/api/billing/checkout-session`, {
+      const res = await fetch(checkoutUrl, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${tokens.accessToken}`,
@@ -120,7 +121,8 @@ export default function AccountBillingPage() {
       const data = await res.json() as { client_secret: string };
       setClientSecret(data.client_secret);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not start Stripe Checkout.");
+      const message = err instanceof Error ? err.message : "Could not start Stripe Checkout.";
+      setError(`${message}. Request URL: ${checkoutUrl}`);
     } finally {
       setWorking(false);
     }
