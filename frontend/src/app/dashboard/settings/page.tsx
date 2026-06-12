@@ -50,7 +50,7 @@ export default function SettingsPage() {
 
   return <AuthGuard><div className="mx-auto max-w-4xl space-y-5 px-6 py-6">
     <header><h1 className="text-xl font-semibold">All Settings</h1><p className="mt-1 text-sm text-[var(--text-muted)]">Choose a section to review and update your account preferences.</p></header>
-    {error && <p className="rounded-lg border border-red-500/40 bg-red-950/20 p-3 text-sm text-red-300">{error}</p>}
+    {error && <p className="rounded-[var(--radius-sm)] border p-3 text-sm" role="alert" style={{ background: "var(--error-bg)", borderColor: "var(--error-border)", color: "var(--error-fg)" }}>{error}</p>}
     <SettingsSection title="Appearance" description="Choose how BEAM Analytics looks on this device." open>
       <label className="block max-w-xs text-sm"><span className="mb-1 block text-[var(--text-muted)]">Theme</span><select value={theme} onChange={(e) => { const nextTheme = e.target.value as "light" | "dark"; setTheme(nextTheme); void update("/api/file-settings/me", { theme_preference: nextTheme }, (value) => setFiles(value as FileSettings)); }} className="w-full cursor-pointer rounded-md border border-[var(--border)] bg-[color:var(--bg-panel-2)] px-3 py-2"><option value="light">Light</option><option value="dark">Dark</option></select></label>
     </SettingsSection>
@@ -62,7 +62,7 @@ export default function SettingsPage() {
     <SettingsSection title="File Deletion" description="Choose how deleted files are handled.">
       <SettingRow label="Confirm before deleting a file"><SettingsToggle label="Confirm before deleting a file" checked={files?.confirm_file_delete ?? true} disabled={saving || !files} onChange={(checked) => void update("/api/file-settings/me", { confirm_file_delete: checked }, (value) => setFiles(value as FileSettings))} /></SettingRow>
       <label className="block max-w-xs text-sm"><span className="mb-1 block text-[var(--text-muted)]">Keep deleted files</span><select value={files?.recycle_bin_retention_days ?? 30} disabled={saving || !files} onChange={(e) => void update("/api/file-settings/me", { recycle_bin_retention_days: Number(e.target.value) }, (value) => setFiles(value as FileSettings))} className="w-full cursor-pointer rounded-md border border-[var(--border)] bg-[color:var(--bg-panel-2)] px-3 py-2 disabled:cursor-not-allowed"><option value={30}>30 days</option><option value={60}>60 days</option><option value={90}>90 days</option></select></label>
-      <Link href="/dashboard/recycle-bin" className="inline-block text-sm text-cyan-400 hover:underline">Open Recycle Bin</Link>
+      <Link href="/dashboard/recycle-bin" className="inline-block text-sm font-medium hover:underline" style={{ color: "var(--link)" }}>Open Recycle Bin</Link>
     </SettingsSection>
     {(user?.role === "owner" || user?.role === "admin") && <SettingsSection title="Account Administration" description="Manage users and review AI usage for your account."><div className="flex flex-wrap gap-3"><Link href="/dashboard/admin/users" className="rounded-md border border-[var(--border)] px-3 py-2 text-sm hover:bg-[color:var(--bg-panel-2)]">Add Users</Link><Link href="/dashboard/admin/llm-usage" className="rounded-md border border-[var(--border)] px-3 py-2 text-sm hover:bg-[color:var(--bg-panel-2)]">AI Usage</Link></div></SettingsSection>}
   </div></AuthGuard>;

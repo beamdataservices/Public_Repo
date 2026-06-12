@@ -24,17 +24,17 @@ export default function SelectAccountPage() {
               type="button"
               disabled={loading}
               onClick={() => void selectAccount(account.membership_id)}
-              className="flex w-full cursor-pointer items-center justify-between rounded-lg border border-[var(--border)] bg-[color:var(--bg-main)] px-4 py-3 text-left hover:border-cyan-400 disabled:opacity-60"
+              className="flex w-full cursor-pointer items-center justify-between rounded-[var(--radius-sm)] border border-[var(--border)] bg-[color:var(--bg-panel-2)] px-4 py-3 text-left transition-colors duration-150 hover:border-[var(--focus-ring)] disabled:opacity-60"
             >
               <span>
                 <span className="block font-semibold">{account.account_name}</span>
                 <span className="text-xs capitalize text-[var(--text-muted)]">{account.role}</span>
               </span>
-              <span className="text-sm text-cyan-400">Open</span>
+              <span className="text-sm" style={{ color: "var(--link)" }}>Open</span>
             </button>
           ))}
         </div>
-        <button type="button" onClick={logout} className="mt-6 text-sm text-cyan-300 hover:underline">Back to sign in</button>
+        <button type="button" onClick={logout} className="mt-6 text-sm font-medium hover:underline" style={{ color: "var(--link)" }}>Back to sign in</button>
       </div>
     </main>
   );

@@ -116,7 +116,7 @@ export default function RecycleBinPage() {
         </header>
 
         {error && (
-          <div className="rounded-lg border border-red-500/40 bg-red-950/20 p-4 text-sm text-red-300">
+          <div className="rounded-[var(--radius-sm)] border p-4 text-sm" role="alert" style={{ background: "var(--error-bg)", borderColor: "var(--error-border)", color: "var(--error-fg)" }}>
             {error}
           </div>
         )}
@@ -155,7 +155,7 @@ export default function RecycleBinPage() {
                       type="button"
                       onClick={() => permanentlyDeleteFile(file)}
                       disabled={restoringId === file.id || deletingId === file.id}
-                      className="rounded-md border border-red-500/40 px-3 py-2 text-xs font-medium text-red-300 hover:bg-red-950/30 disabled:opacity-60"
+                      className="btn btn-sm" style={{ border: "1px solid var(--error-border)", color: "var(--error-fg)", background: "transparent" }}
                     >
                       {deletingId === file.id ? "Deleting..." : "Permanently Delete"}
                     </button>
