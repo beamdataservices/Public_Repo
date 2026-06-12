@@ -63,14 +63,23 @@ def _fmt_columns(column_types: list) -> str:
 # System prompt builders
 # ---------------------------------------------------------------------------
 
-def _health_advisor(file_name: str, health: dict | None) -> str:
+def _health_advisor(file_name: str, health: dict | None, data_profile: str = "") -> str:
+    profile_block = f"\nDATA SNAPSHOT:\n{data_profile}\n" if data_profile else ""
+
     if not health:
-        return (
-            f'You are a data health expert for BEAM Analytics helping a non-technical business user.\n'
-            f'The user is analyzing a file called "{file_name}". The Data Health analysis has not been '
-            f'run yet - suggest they click the "Data Health" tab for a quality score and issue list.\n'
-            f'Keep responses to 2-3 sentences, plain English, no jargon.'
-        )
+        return f"""You are a data health expert for BEAM Analytics helping a non-technical business user.
+
+FILE: {file_name}
+{profile_block}
+The formal Data Health score has not been computed yet for this session.
+
+RULES:
+- Answer the user's question directly using the DATA SNAPSHOT above - describe what the data contains, its size, notable values, and anything that stands out
+- If they want the formal quality score and issue list, mention the "Data Health" tab as a follow-up, never as a substitute for answering
+- Plain business English, no jargon
+- 3-6 sentences
+- Never invent data not shown above
+- Never use em dashes in your response; use commas or periods instead"""
 
     issues = _fmt_issues(health.get("issues", []))
     cats = _fmt_categories(
@@ -86,7 +95,7 @@ FILE: {file_name}
 HEALTH SCORE: {health.get("score", "?")}/100 (Grade {health.get("grade", "?")}) - {health.get("score_label", "")}
 SIZE: {health.get("total_rows", 0):,} records across {health.get("total_columns", 0)} fields
 DUPLICATE ROWS: {dup:,}
-
+{profile_block}
 SCORE BREAKDOWN:
 {cats}
 
@@ -94,8 +103,9 @@ ISSUES FOUND:
 {issues}
 
 RULES:
+- Answer the user's question directly using the data and health report above - never tell them to go look somewhere else for information you already have
 - Explain everything in plain business English - never use unexplained technical terms
-- Reference specific numbers from the report above when they add clarity
+- Reference specific numbers, column names, and values from above when they add clarity
 - Be direct and helpful, not overly formal
 - 3-5 sentences for simple questions; up to 8 for complex ones
 - If duplicates exist, mention the "Remove duplicate rows" tool on the Data Health tab
@@ -103,16 +113,18 @@ RULES:
 - Never use em dashes in your response; use commas or periods instead"""
 
 
-def _data_quality_coach(file_name: str, health: dict | None, col_types: list) -> str:
+def _data_quality_coach(file_name: str, health: dict | None, col_types: list, data_profile: str = "") -> str:
     issues = _fmt_issues(health.get("issues", []) if health else [])
     cols = _fmt_columns(col_types)
     dup = health.get("duplicate_count", 0) if health else 0
-    issues_block = issues if health is not None else "  No health data loaded yet - suggest the user visits the Data Health tab first."
+    issues_block = issues if health is not None else "  Formal health check not run yet this session - use the DATA SNAPSHOT to assess quality directly (missing values, suspicious distinct counts, odd ranges)."
+    profile_block = f"\nDATA SNAPSHOT:\n{data_profile}\n" if data_profile else ""
 
     return f"""You are a practical data quality advisor for BEAM Analytics helping business users fix data problems.
 
 FILE: {file_name}
 {f"DUPLICATE ROWS: {dup:,}" if dup else ""}
+{profile_block}
 ISSUES:
 {issues_block}
 {f"COLUMNS:{chr(10)}{cols}" if cols else ""}
@@ -124,20 +136,23 @@ TOOLS AVAILABLE IN THIS APP:
 - File Overview - auto-generated KPI metrics and charts
 
 RULES:
-- Give specific, actionable advice
+- Answer the user's question directly using the data above - never deflect to another tab for information you already have
+- Give specific, actionable advice with real column names and values from the snapshot
 - Reference app tools by their exact name when they apply
 - If something can't be fixed inside the app, say so and briefly explain how to fix it externally
 - 3-5 sentences; be practical not theoretical
 - Never use em dashes in your response; use commas or periods instead"""
 
 
-def _chart_interpreter(file_name: str, col_types: list) -> str:
+def _chart_interpreter(file_name: str, col_types: list, data_profile: str = "") -> str:
     cols = _fmt_columns(col_types)
+    profile_block = f"\nDATA SNAPSHOT:\n{data_profile}\n" if data_profile else ""
 
     return f"""You are a data visualization expert for BEAM Analytics helping business users understand and build charts.
 
 FILE: {file_name}
-{f"COLUMNS:{chr(10)}{cols}" if cols else "Column details not loaded yet."}
+{profile_block}
+{f"COLUMNS:{chr(10)}{cols}" if cols else ""}
 
 CHART TYPES AVAILABLE:
 - Bar Chart: compare totals or averages across categories
@@ -149,19 +164,28 @@ CHART TYPES AVAILABLE:
 
 RULES:
 - Explain chart insights in plain business language, not statistical terms
-- When recommending a chart, match it to the column types above
+- When recommending a chart, name the exact columns from the data above to use for each axis
+- Use the value ranges and top categories in the snapshot to predict what the chart will likely show
 - Suggest what business question the chart would answer
 - 2-4 sentences
 - Never use em dashes in your response; use commas or periods instead"""
 
 
-def _action_planner(file_name: str, health: dict | None) -> str:
+def _action_planner(file_name: str, health: dict | None, data_profile: str = "") -> str:
+    profile_block = f"\nDATA SNAPSHOT:\n{data_profile}\n" if data_profile else ""
+
     if not health:
-        return (
-            f'You are a strategic advisor for BEAM Analytics. The user hasn\'t run the Data Health check on '
-            f'"{file_name}" yet. Tell them to start with the "Data Health" tab - it takes 15-30 seconds '
-            f'and gives a quality score plus a prioritized action list. Keep to 2-3 sentences.'
-        )
+        return f"""You are a strategic data advisor for BEAM Analytics helping a business user decide what to do next.
+
+FILE: {file_name}
+{profile_block}
+The formal Data Health score has not been computed yet for this session.
+
+RULES:
+- Recommend 2-3 concrete next steps based on the actual data above (e.g. which columns to chart, what to investigate, whether anything in the snapshot looks off)
+- Mention that the "Data Health" tab gives a formal quality score, as one of the steps, not the only answer
+- Plain business English, specific not vague
+- Never use em dashes in your response; use commas or periods instead"""
 
     issues = _fmt_issues(health.get("issues", []))
     dup = health.get("duplicate_count", 0)
@@ -172,7 +196,7 @@ FILE: {file_name}
 HEALTH SCORE: {health.get("score", "?")}/100 (Grade {health.get("grade", "?")})
 SIZE: {health.get("total_rows", 0):,} records, {health.get("total_columns", 0)} fields
 DUPLICATE ROWS: {dup:,}
-
+{profile_block}
 ISSUES:
 {issues}
 
@@ -226,6 +250,7 @@ def build_specialist_messages(
     context: dict,
     history: list[dict],
     file_name: str,
+    data_profile: str = "",
 ) -> list[dict]:
     """Return the full messages list for the primary specialist."""
     primary = agents[0] if agents else "health_advisor"
@@ -237,16 +262,16 @@ def build_specialist_messages(
     if primary == "app_guide":
         system = builder()
     elif primary in ("health_advisor", "action_planner"):
-        system = builder(file_name, health)
+        system = builder(file_name, health, data_profile)
     elif primary == "chart_interpreter":
-        system = builder(file_name, col_types)
+        system = builder(file_name, col_types, data_profile)
     else:  # data_quality_coach
-        system = builder(file_name, health, col_types)
+        system = builder(file_name, health, col_types, data_profile)
 
     messages: list[dict] = [{"role": "system", "content": system}]
 
-    # Conversation history - last 3 turns (6 messages)
-    for h in (history or [])[-6:]:
+    # Conversation history - last 6 turns (12 messages)
+    for h in (history or [])[-12:]:
         role = h.get("role", "user")
         content = h.get("content", "")
         if role in ("user", "assistant") and content:
