@@ -81,21 +81,52 @@ function scoreColor(score: number): string {
 
 function ScoreRing({ score, grade }: { score: number; grade: string }) {
   const color = scoreColor(score);
+  const size = 136;
+  const strokeW = 11;
+  const r = (size - strokeW) / 2;
+  const cx = size / 2;
+  const circumference = 2 * Math.PI * r;
+  const offset = circumference * (1 - score / 100);
 
   return (
-    <div className="flex flex-col items-center justify-center gap-1">
-      <div
-        className="flex items-center justify-center rounded-full w-28 h-28 border-8"
-        style={{ borderColor: color }}
-      >
-        <div className="text-center">
-          <p className="text-3xl font-bold tabular-nums text-[var(--text-main)] leading-none">{score}</p>
-          <p className="text-xs text-[var(--text-muted)] mt-0.5">out of 100</p>
+    <div className="flex flex-col items-center gap-2">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg
+          width={size}
+          height={size}
+          style={{ transform: "rotate(-90deg)", display: "block" }}
+          aria-hidden="true"
+        >
+          {/* Track */}
+          <circle
+            cx={cx} cy={cx} r={r}
+            fill="none"
+            stroke="var(--bg-panel-2)"
+            strokeWidth={strokeW}
+          />
+          {/* Progress arc */}
+          <circle
+            cx={cx} cy={cx} r={r}
+            fill="none"
+            stroke={color}
+            strokeWidth={strokeW}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            style={{
+              transition: "stroke-dashoffset 1.2s cubic-bezier(0.16,1,0.3,1), stroke 0.4s ease",
+              filter: `drop-shadow(0 0 6px ${color}60)`,
+            }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <p className="text-4xl font-bold tabular-nums leading-none" style={{ color: "var(--text-main)" }}>
+            {score}
+          </p>
+          <p className="text-[10px] font-medium text-[var(--text-muted)] mt-0.5 tracking-wide uppercase">/ 100</p>
         </div>
       </div>
-      <p className="text-xl font-semibold" style={{ color }}>
-        Grade {grade}
-      </p>
+      <p className="text-xl font-bold tracking-tight" style={{ color }}>Grade {grade}</p>
     </div>
   );
 }
@@ -370,19 +401,24 @@ function CategoryBar({ label, score, explanation }: { label: string; score: numb
   const color = scoreColor(score);
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <div className="flex justify-between text-xs">
-        <span className="text-[var(--text-main)] font-medium">{label}</span>
-        <span className="text-[var(--text-muted)] tabular-nums">{score.toFixed(0)}/100</span>
+        <span className="font-semibold text-[var(--text-main)]">{label}</span>
+        <span className="font-semibold tabular-nums" style={{ color }}>{score.toFixed(0)}</span>
       </div>
       <div className="h-2 w-full rounded-full bg-[color:var(--bg-panel-2)] overflow-hidden">
         <div
-          className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${score}%`, backgroundColor: color }}
+          className="h-full rounded-full"
+          style={{
+            width: `${score}%`,
+            backgroundColor: color,
+            boxShadow: `0 1px 4px ${color}55`,
+            transition: "width 1s cubic-bezier(0.16,1,0.3,1)",
+          }}
         />
       </div>
       {explanation && (
-        <p className="text-xs text-[var(--text-muted)]">{explanation}</p>
+        <p className="text-xs text-[var(--text-muted)] leading-relaxed">{explanation}</p>
       )}
     </div>
   );
@@ -645,17 +681,29 @@ export default function HealthDiagnosticView({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-24 text-sm text-[var(--text-muted)]">
-        <div className="text-center space-y-4">
-          <div className="text-3xl animate-pulse">🔍</div>
-          <p className="font-medium text-[var(--text-main)]">Analyzing your data…</p>
-          <p className="text-xs max-w-xs leading-relaxed">
-            Checking for missing values, duplicates, formatting issues, and unusual values.
-            This can take 15–30 seconds depending on file size.
-          </p>
-          <div className="w-48 h-1 bg-[color:var(--bg-panel-2)] rounded-full overflow-hidden mx-auto">
-            <div className="h-full rounded-full"
-                 style={{ width: "60%", background: "var(--focus-ring)", animation: "pulse 2s cubic-bezier(0.4,0,0.6,1) infinite" }} />
+      <div className="flex items-center justify-center py-28 text-sm text-[var(--text-muted)]">
+        <div className="text-center space-y-5 max-w-xs">
+          <div className="relative mx-auto w-16 h-16">
+            <svg width="64" height="64" viewBox="0 0 64 64" style={{ transform: "rotate(-90deg)" }}>
+              <circle cx="32" cy="32" r="27" fill="none" stroke="var(--bg-panel-2)" strokeWidth="7" />
+              <circle
+                cx="32" cy="32" r="27"
+                fill="none"
+                stroke="var(--focus-ring)"
+                strokeWidth="7"
+                strokeLinecap="round"
+                strokeDasharray="169.6"
+                strokeDashoffset="42"
+                style={{ animation: "spin 1.4s linear infinite", transformOrigin: "center" }}
+              />
+            </svg>
+          </div>
+          <div>
+            <p className="font-semibold text-base text-[var(--text-main)]">Analyzing your data</p>
+            <p className="mt-1.5 text-xs leading-relaxed">
+              Checking completeness, duplicates, formatting issues, and unusual values.
+              Typically 15–30 seconds.
+            </p>
           </div>
         </div>
       </div>
@@ -707,16 +755,16 @@ export default function HealthDiagnosticView({
   return (
     <div className="space-y-6">
       {/* ---- Score card ---- */}
-      <div className="card p-6">
+      <div className="card p-6 animate-fade-up">
         <div className="flex flex-col sm:flex-row items-center gap-6">
           <ScoreRing score={health.score} grade={health.grade} />
 
           <div className="flex-1 space-y-4 min-w-0">
             {fileName && (
-              <p className="text-xs text-[var(--text-muted)] truncate font-mono">{fileName}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] truncate">{fileName}</p>
             )}
             <div>
-              <h2 className="text-lg font-semibold text-[var(--text-main)]">{health.score_label}</h2>
+              <h2 className="text-xl font-bold tracking-tight text-[var(--text-main)]">{health.score_label}</h2>
               <p className="mt-1 text-sm text-[var(--text-muted)]">
                 Analyzed{" "}
                 <strong className="text-[var(--text-main)]">{health.total_rows.toLocaleString()} records</strong>{" "}
@@ -743,21 +791,21 @@ export default function HealthDiagnosticView({
           </div>
         </div>
 
-        {/* Issue count summary */}
+        {/* Issue count summary chips */}
         {health.issues.length > 0 && (
-          <div className="mt-5 pt-4 border-t border-[var(--border-subtle)] flex flex-wrap gap-4 text-sm">
+          <div className="mt-5 pt-4 border-t border-[var(--border-subtle)] flex flex-wrap gap-2">
             {criticalCount > 0 && (
-              <span className="font-medium" style={{ color: "var(--error-fg)" }}>
+              <span className="badge badge-error">
                 ⚠ {criticalCount} critical {criticalCount === 1 ? "issue" : "issues"}
               </span>
             )}
             {warningCount > 0 && (
-              <span className="font-medium" style={{ color: "var(--warning-fg)" }}>
+              <span className="badge badge-warning">
                 ⚡ {warningCount} {warningCount === 1 ? "warning" : "warnings"}
               </span>
             )}
             {infoCount > 0 && (
-              <span style={{ color: "var(--info-fg)" }}>
+              <span className="badge badge-info">
                 ℹ {infoCount} {infoCount === 1 ? "note" : "notes"}
               </span>
             )}
@@ -766,12 +814,14 @@ export default function HealthDiagnosticView({
       </div>
 
       {/* ---- Action Plan ---- */}
-      <ActionPlanSection fileId={fileId} token={token} health={health} />
+      <div className="animate-fade-up-1">
+        <ActionPlanSection fileId={fileId} token={token} health={health} />
+      </div>
 
       {/* ---- Issues list ---- */}
       {health.issues.length > 0 ? (
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-[var(--text-main)]">{issuesSectionTitle}</h3>
+        <div className="space-y-3 animate-fade-up-2">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{issuesSectionTitle}</h3>
           {(["critical", "warning", "info"] as const).flatMap((sev) =>
             health.issues
               .filter((i) => i.severity === sev)
