@@ -288,12 +288,19 @@ function OverviewChartCard({
               ...(fig.layout?.xaxis || {}),
               gridcolor: plotTheme.gridColor,
               zerolinecolor: plotTheme.gridColor,
+              linecolor: plotTheme.gridColor,
+              tickfont: { color: plotTheme.fontColor, size: 11 },
+              title: { ...(fig.layout?.xaxis?.title || {}), font: { color: plotTheme.fontColor, size: 12 } },
             },
             yaxis: {
               ...(fig.layout?.yaxis || {}),
               gridcolor: plotTheme.gridColor,
               zerolinecolor: plotTheme.gridColor,
+              linecolor: plotTheme.gridColor,
+              tickfont: { color: plotTheme.fontColor, size: 11 },
+              title: { ...(fig.layout?.yaxis?.title || {}), font: { color: plotTheme.fontColor, size: 12 } },
             },
+            legend: { ...(fig.layout?.legend || {}), font: { color: plotTheme.fontColor, size: 11 } },
           }}
           config={{
             responsive: true,
@@ -375,8 +382,8 @@ export default function FileInsightsPage() {
     // chart tokens so Plotly tracks the active theme exactly.
     const fallback =
       theme === "dark"
-        ? { fontColor: "#a9b4c6", gridColor: "rgba(230, 234, 242, 0.08)" }
-        : { fontColor: "#3d4a5f", gridColor: "rgba(16, 24, 40, 0.08)" };
+        ? { fontColor: "#d0d8e8", gridColor: "rgba(168, 185, 214, 0.18)" }
+        : { fontColor: "#2d3a52", gridColor: "rgba(16, 24, 40, 0.12)" };
     if (typeof document === "undefined") return fallback;
 
     const styles = getComputedStyle(document.documentElement);

@@ -91,8 +91,8 @@
   --score-bad: #c03333;
 
   /* Charts (Plotly) */
-  --chart-text: #3d4a5f;
-  --chart-grid: rgba(16, 24, 40, 0.08);
+  --chart-text: #2d3a52;
+  --chart-grid: rgba(16, 24, 40, 0.12);
 
   /* Elevation */
   --shadow-1: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.04);
@@ -161,8 +161,8 @@
   --score-poor: #f08a4b;
   --score-bad: #f08c8c;
 
-  --chart-text: #a9b4c6;
-  --chart-grid: rgba(230, 234, 242, 0.08);
+  --chart-text: #d0d8e8;
+  --chart-grid: rgba(168, 185, 214, 0.18);
 
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-2: 0 4px 16px rgba(0, 0, 0, 0.5);
