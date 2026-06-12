@@ -1,11 +1,14 @@
 "use client";
 
 import { AuthGuard } from "@/components/AuthGuard";
+import DemoUpgradeBanner from "@/components/DemoUpgradeBanner";
 
 export default function DashboardPage() {
   return (
     <AuthGuard>
       <div className="px-6 py-8 max-w-2xl">
+        <DemoUpgradeBanner />
+
         {/* Welcome header */}
         <div className="mb-8">
           <h1 className="text-2xl font-semibold text-[var(--text-main)]">

@@ -179,7 +179,7 @@ export default function AccountBillingPage() {
                   </p>
                 </div>
                 <div className="rounded-full border border-[var(--border)] px-4 py-2 text-sm font-semibold">
-                  {billing.subscription_status || "none"}
+                  {subscriptionStatusLabel(billing.subscription_status)}
                 </div>
               </div>
               {billing.current_period_end && (
@@ -230,6 +230,11 @@ export default function AccountBillingPage() {
 
 function formatLimit(used: number, limit: number | null): string {
   return limit === null ? `${used}` : `${used} / ${limit}`;
+}
+
+function subscriptionStatusLabel(status: string | null): string {
+  if (!status || status === "none") return "No subscription yet";
+  return status.replaceAll("_", " ");
 }
 
 function UsageCard({ title, value, detail }: { title: string; value: string; detail: string }) {
