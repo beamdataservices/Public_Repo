@@ -757,20 +757,25 @@ export default function DashboardBuilder({
     // Read the chart tokens so Plotly tracks the active theme exactly
     const fallback =
       theme === "dark"
-        ? { text: "#a9b4c6", grid: "rgba(230, 234, 242, 0.08)" }
-        : { text: "#3d4a5f", grid: "rgba(16, 24, 40, 0.08)" };
+        ? { text: "#d0d8e8", grid: "rgba(168, 185, 214, 0.18)" }
+        : { text: "#2d3a52", grid: "rgba(16, 24, 40, 0.12)" };
     const styles =
       typeof document !== "undefined" ? getComputedStyle(document.documentElement) : null;
     const text = styles?.getPropertyValue("--chart-text").trim() || fallback.text;
     const grid = styles?.getPropertyValue("--chart-grid").trim() || fallback.grid;
+
+    // Explicitly set tickfont and title.font on each axis so Plotly's own
+    // default grey (#444) can't override the theme color.
+    const axisFontProps = { tickfont: { color: text, size: 11 }, title: { font: { color: text, size: 12 } } };
 
     return {
       autosize: true,
       paper_bgcolor: "rgba(0,0,0,0)",
       plot_bgcolor: "rgba(0,0,0,0)",
       font: { color: text, size: 12 },
-      xaxis: { gridcolor: grid, zerolinecolor: grid },
-      yaxis: { gridcolor: grid, zerolinecolor: grid },
+      xaxis: { gridcolor: grid, zerolinecolor: grid, linecolor: grid, ...axisFontProps },
+      yaxis: { gridcolor: grid, zerolinecolor: grid, linecolor: grid, ...axisFontProps },
+      legend: { font: { color: text, size: 11 } },
       margin: { l: 50, r: 20, t: 20, b: 50 },
     };
   }, [theme]);
@@ -1194,12 +1199,7 @@ export default function DashboardBuilder({
               <button
                 type="button"
                 onClick={deleteCurrentReport}
-                className="btn"
-                style={{
-                  border: "1px solid var(--error-border)",
-                  color: "var(--error-fg)",
-                  background: "transparent",
-                }}
+                className="btn btn-danger-outline"
               >
                 Delete
               </button>
@@ -1212,6 +1212,7 @@ export default function DashboardBuilder({
       {(runError || reportError) && (
         <div
           className="flex items-start justify-between gap-3 rounded-[var(--radius-sm)] border px-4 py-2 text-xs"
+          role="alert"
           style={{
             background: "var(--warning-bg)",
             borderColor: "var(--warning-border)",

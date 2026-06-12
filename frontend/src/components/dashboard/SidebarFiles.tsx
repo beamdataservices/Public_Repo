@@ -175,9 +175,15 @@ export default function SidebarFiles({ reloadFlag }: { reloadFlag: number }) {
         </span>
       </div>
 
-      {loading && <div className="px-4 py-2 text-xs text-(--text-muted)">Loading files...</div>}
+      {loading && (
+        <div className="space-y-2 px-4 py-2" aria-label="Loading files">
+          <div className="skeleton h-9 w-full" />
+          <div className="skeleton h-9 w-full" />
+          <div className="skeleton h-9 w-3/4" />
+        </div>
+      )}
       {error && !loading && (
-        <div className="px-4 py-2 text-xs" style={{ color: "var(--error-fg)" }}>
+        <div className="px-4 py-2 text-xs" role="alert" style={{ color: "var(--error-fg)" }}>
           {error}
         </div>
       )}

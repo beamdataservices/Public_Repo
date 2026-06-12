@@ -247,8 +247,8 @@ function OverviewChartCard({
 
   return (
     <div className="card p-5">
-      <div className="flex items-center justify-between gap-3 mb-3">
-        <h3 className="text-sm font-semibold text-[var(--text-main)]">{title}</h3>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <h3 className="text-sm font-semibold text-[var(--text-main)] tracking-tight">{title}</h3>
         <div className="flex items-center gap-2 shrink-0">
           {narrateState === "idle" && (
             <button type="button" onClick={() => handleNarrate()} className="btn btn-accent-outline btn-sm">
@@ -288,12 +288,19 @@ function OverviewChartCard({
               ...(fig.layout?.xaxis || {}),
               gridcolor: plotTheme.gridColor,
               zerolinecolor: plotTheme.gridColor,
+              linecolor: plotTheme.gridColor,
+              tickfont: { color: plotTheme.fontColor, size: 11 },
+              title: { font: { color: plotTheme.fontColor, size: 12 } },
             },
             yaxis: {
               ...(fig.layout?.yaxis || {}),
               gridcolor: plotTheme.gridColor,
               zerolinecolor: plotTheme.gridColor,
+              linecolor: plotTheme.gridColor,
+              tickfont: { color: plotTheme.fontColor, size: 11 },
+              title: { font: { color: plotTheme.fontColor, size: 12 } },
             },
+            legend: { ...(fig.layout?.legend || {}), font: { color: plotTheme.fontColor, size: 11 } },
           }}
           config={{
             responsive: true,
@@ -375,8 +382,8 @@ export default function FileInsightsPage() {
     // chart tokens so Plotly tracks the active theme exactly.
     const fallback =
       theme === "dark"
-        ? { fontColor: "#a9b4c6", gridColor: "rgba(230, 234, 242, 0.08)" }
-        : { fontColor: "#3d4a5f", gridColor: "rgba(16, 24, 40, 0.08)" };
+        ? { fontColor: "#d0d8e8", gridColor: "rgba(168, 185, 214, 0.18)" }
+        : { fontColor: "#2d3a52", gridColor: "rgba(16, 24, 40, 0.12)" };
     if (typeof document === "undefined") return fallback;
 
     const styles = getComputedStyle(document.documentElement);
@@ -520,11 +527,11 @@ export default function FileInsightsPage() {
       <main className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
         <header className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-xl font-semibold tracking-tight text-[var(--text-main)] truncate">
+            <h1 className="text-2xl font-bold tracking-tight text-[var(--text-main)] truncate leading-snug">
               {fileTitle}
             </h1>
             {fileSubtitle && (
-              <p className="mt-0.5 text-xs text-[var(--text-muted)]">{fileSubtitle}</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)] font-medium">{fileSubtitle}</p>
             )}
           </div>
 
@@ -563,7 +570,7 @@ export default function FileInsightsPage() {
           )}
         </header>
 
-        <div className="flex gap-1 border-b border-[var(--border-subtle)]" role="tablist">
+        <div className="tab-bar" role="tablist">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -571,16 +578,11 @@ export default function FileInsightsPage() {
               type="button"
               role="tab"
               aria-selected={activeTab === tab.id}
-              className={[
-                "relative px-4 py-2.5 text-sm font-medium transition-colors duration-150 -mb-px border-b-2",
-                activeTab === tab.id
-                  ? "border-[var(--focus-ring)] text-[var(--text-main)]"
-                  : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]",
-              ].join(" ")}
+              className="tab-pill"
             >
               {tab.label}
               {tab.badge && activeTab !== tab.id && (
-                <span className="badge badge-info ml-2 px-1.5 leading-4">✓</span>
+                <span className="badge badge-info ml-1.5 px-1.5 leading-4">✓</span>
               )}
             </button>
           ))}
@@ -589,8 +591,19 @@ export default function FileInsightsPage() {
         {activeTab === "overview" && (
           <>
             {loadingInsights && !insights && (
-              <div className="py-12 text-center text-sm text-[var(--text-muted)]">
-                Loading your file...
+              <div className="space-y-6 animate-fade-in">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="card p-5 space-y-3">
+                      <div className="skeleton h-3 w-20 rounded" />
+                      <div className="skeleton h-8 w-28 rounded" />
+                    </div>
+                  ))}
+                </div>
+                <div className="card p-5 space-y-3">
+                  <div className="skeleton h-3 w-16 rounded" />
+                  <div className="skeleton h-[280px] w-full rounded" />
+                </div>
               </div>
             )}
 
@@ -609,15 +622,23 @@ export default function FileInsightsPage() {
             )}
 
             {kpis && Object.keys(kpis).length > 0 && (
-              <section>
-                <h2 className="mb-3 text-sm font-semibold text-[var(--text-main)]">
+              <section className="animate-fade-up">
+                <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
                   Key Metrics
                 </h2>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {Object.entries(kpis).map(([label, value]) => (
-                    <div key={label} className="card p-4">
-                      <p className="text-xs font-medium text-[var(--text-muted)]">{label}</p>
-                      <p className="mt-2 text-2xl font-semibold tracking-tight tabular-nums text-[var(--text-main)]">
+                  {Object.entries(kpis).map(([label, value], i) => (
+                    <div
+                      key={label}
+                      className="card card-hover p-5 relative overflow-hidden"
+                      style={{ animationDelay: `${i * 50}ms` }}
+                    >
+                      <div
+                        className="absolute top-0 left-0 right-0 h-[3px] rounded-t-[var(--radius-md)]"
+                        style={{ background: "var(--gradient-accent)" }}
+                      />
+                      <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{label}</p>
+                      <p className="mt-2.5 text-3xl font-bold tracking-tight tabular-nums text-[var(--text-main)] leading-none">
                         {typeof value === "number" ? value.toLocaleString() : String(value)}
                       </p>
                     </div>
@@ -627,8 +648,8 @@ export default function FileInsightsPage() {
             )}
 
             {charts && Object.keys(charts).length > 0 && (
-              <section className="space-y-6">
-                <h2 className="text-sm font-semibold text-[var(--text-main)]">Charts</h2>
+              <section className="space-y-6 animate-fade-up-1">
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Charts</h2>
                 {Object.entries(charts).map(([key, fig]) => (
                   <OverviewChartCard
                     key={key}

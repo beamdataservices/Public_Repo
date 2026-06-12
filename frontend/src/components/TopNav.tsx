@@ -79,14 +79,22 @@ export default function TopNav() {
     }
   }
 
-  const headerChip =
-    "rounded-[var(--radius-sm)] border px-3 py-2 text-xs font-medium transition-colors duration-150";
-
   return (
-    <header className="flex w-full items-center justify-between px-6 py-3.5" style={{ background: "var(--header-bg)", borderBottom: "2px solid var(--header-border)", color: "var(--header-text)" }}>
-      <div className="flex items-center gap-3">
-        <div className="h-10 w-10 overflow-hidden rounded-lg"><Image src="/beam-favicon-20260531-noborder.png" alt="BEAM" width={40} height={40} className="h-10 w-10 object-cover" priority /></div>
-        <div className="leading-tight"><div className="text-[15px] font-semibold tracking-tight">BEAM Analytics</div><div className="text-[11px]" style={{ color: "var(--header-text-muted)" }}>Data Quality Platform</div></div>
+    <header
+      className="flex w-full items-center justify-between px-6 py-4"
+      style={{
+        background: "linear-gradient(180deg, var(--header-bg) 0%, color-mix(in srgb, var(--header-bg) 88%, #000) 100%)",
+        borderBottom: "2px solid var(--header-border)",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.25)",
+        color: "var(--header-text)",
+      }}
+    >
+      <div className="flex items-center gap-3.5">
+        <div className="h-10 w-10 overflow-hidden rounded-xl shadow-md"><Image src="/beam-favicon-20260531-noborder.png" alt="BEAM" width={40} height={40} className="h-10 w-10 object-cover" priority /></div>
+        <div className="leading-tight">
+          <div className="text-[15px] font-bold tracking-tight">BEAM Analytics</div>
+          <div className="text-[11px] font-medium" style={{ color: "var(--header-text-muted)" }}>Data Quality Platform</div>
+        </div>
         {envBadge && <span className="ml-2 rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide" style={{ border: "1px solid var(--header-chip-border)", background: "var(--header-chip-bg)", color: "var(--header-text-muted)" }}>{envBadge}</span>}
       </div>
 

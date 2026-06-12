@@ -85,7 +85,7 @@ function AgentBadge({ agents }: { agents: string[] }) {
 
 function TypingDots() {
   return (
-    <span className="inline-flex gap-1 items-center h-4">
+    <span className="inline-flex gap-1 items-center h-4" role="status" aria-label="Assistant is responding">
       {[0, 1, 2].map((i) => (
         <span
           key={i}
@@ -234,10 +234,11 @@ export default function ChatPanel({
       setInput("");
       setStreaming(true);
 
-      // Build history from current messages (before the new pair is appended)
+      // Build history from current messages (before the new pair is appended).
+      // Last 12 messages = 6 turns; the backend applies the same cap.
       const history = messages
         .filter((m) => !m.loading)
-        .slice(-6)
+        .slice(-12)
         .map((m) => ({ role: m.role, content: m.content }));
 
       const body = {

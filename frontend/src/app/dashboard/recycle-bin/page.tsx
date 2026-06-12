@@ -100,7 +100,7 @@ export default function RecycleBinPage() {
       <div className="px-6 py-6 space-y-6">
         <header className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-semibold text-[var(--text-main)]">Recycle Bin</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-[var(--text-main)]">Recycle Bin</h1>
             <p className="mt-1 text-sm text-[var(--text-muted)]">
               Deleted files remain available until their retention period expires.
             </p>
@@ -109,7 +109,7 @@ export default function RecycleBinPage() {
             type="button"
             onClick={() => void loadFiles()}
             disabled={loading}
-            className="shrink-0 rounded-md border border-[var(--border)] px-3 py-2 text-xs font-medium text-[var(--text-main)] hover:bg-[color:var(--bg-panel-2)] disabled:opacity-60"
+            className="btn btn-secondary btn-sm shrink-0"
           >
             {loading ? "Refreshing..." : "Refresh"}
           </button>
@@ -122,14 +122,24 @@ export default function RecycleBinPage() {
         )}
 
         {loading ? (
-          <div className="py-12 text-center text-sm text-[var(--text-muted)]">Loading deleted files...</div>
+          <div className="card overflow-hidden animate-fade-in">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center justify-between gap-4 border-b border-[var(--border-subtle)] px-4 py-3 last:border-b-0">
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="skeleton h-3.5 w-48 max-w-full" />
+                  <div className="skeleton h-3 w-64 max-w-full" />
+                </div>
+                <div className="skeleton h-7 w-32 shrink-0" />
+              </div>
+            ))}
+          </div>
         ) : (
-          <section className="overflow-hidden rounded-lg border border-[var(--border)] bg-[color:var(--bg-panel)]">
+          <section className="card overflow-hidden animate-fade-in">
             {files.length === 0 ? (
               <div className="px-4 py-8 text-center text-sm text-[var(--text-muted)]">Recycle bin is empty.</div>
             ) : (
               files.map((file) => (
-                <div key={file.id} className="flex items-center justify-between gap-4 border-b border-[var(--border)] px-4 py-3 last:border-b-0">
+                <div key={file.id} className="flex items-center justify-between gap-4 border-b border-[var(--border-subtle)] px-4 py-3 transition-colors duration-150 last:border-b-0 hover:bg-[color:var(--bg-panel-2)]">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-[var(--text-main)]">{file.original_name}</p>
                     {file.uploaded_by_email && (
@@ -147,7 +157,7 @@ export default function RecycleBinPage() {
                       type="button"
                       onClick={() => restoreFile(file)}
                       disabled={restoringId === file.id || deletingId === file.id}
-                      className="rounded-md border border-[var(--border)] px-3 py-2 text-xs font-medium text-[var(--text-main)] hover:bg-[color:var(--bg-panel-2)] disabled:opacity-60"
+                      className="btn btn-secondary btn-sm"
                     >
                       {restoringId === file.id ? "Restoring..." : "Restore"}
                     </button>
@@ -155,7 +165,7 @@ export default function RecycleBinPage() {
                       type="button"
                       onClick={() => permanentlyDeleteFile(file)}
                       disabled={restoringId === file.id || deletingId === file.id}
-                      className="btn btn-sm" style={{ border: "1px solid var(--error-border)", color: "var(--error-fg)", background: "transparent" }}
+                      className="btn btn-danger-outline btn-sm"
                     >
                       {deletingId === file.id ? "Deleting..." : "Permanently Delete"}
                     </button>
