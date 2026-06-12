@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import SettingsToggle from "@/components/SettingsToggle";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent } from "react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 type AISettings = { tenant_ai_enabled: boolean; user_ai_enabled: boolean; effective_ai_enabled: boolean };
@@ -19,7 +20,10 @@ export default function TopNav() {
   const [fileSettings, setFileSettings] = useState<FileSettings | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showCreateAccount, setShowCreateAccount] = useState(false);
+  const [newAccountName, setNewAccountName] = useState("");
   const settingsRef = useRef<HTMLDivElement>(null);
+  const accountNameRef = useRef<HTMLInputElement>(null);
   const envBadge = useMemo(() => process.env.NEXT_PUBLIC_ENV?.toUpperCase() ?? null, []);
 
   useEffect(() => {
@@ -49,6 +53,10 @@ export default function TopNav() {
     return () => document.removeEventListener("mousedown", closeOnOutsideClick);
   }, [openSettings]);
 
+  useEffect(() => {
+    if (showCreateAccount) accountNameRef.current?.focus();
+  }, [showCreateAccount]);
+
   async function update(path: string, payload: object, apply: (value: AISettings | FileSettings) => void) {
     if (!tokens.accessToken) return;
     setSaving(true);
@@ -64,12 +72,24 @@ export default function TopNav() {
     }
   }
 
-  async function handleCreateAccount() {
-    const accountName = window.prompt("Enter a name for the new account/workspace:");
-    if (!accountName || !accountName.trim()) return;
+  function openCreateAccountForm() {
+    setShowCreateAccount(true);
+    setNewAccountName("");
+    setError(null);
+  }
+
+  async function handleCreateAccount(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const accountName = newAccountName.trim();
+    if (!accountName) {
+      setError("Enter an account name.");
+      return;
+    }
     setSaving(true);
     try {
-      await createAccount(accountName.trim());
+      await createAccount(accountName);
+      setShowCreateAccount(false);
+      setNewAccountName("");
       setOpenSettings(false);
       setError(null);
     } catch (err) {
@@ -138,7 +158,31 @@ export default function TopNav() {
             {(user.role === "owner" || user.role === "admin") && <MenuLink href="/dashboard/admin/users" close={() => setOpenSettings(false)}>Add Users</MenuLink>}
             {(user.role === "owner" || user.role === "admin") && <MenuLink href="/dashboard/admin/llm-usage" close={() => setOpenSettings(false)}>AI Usage</MenuLink>}
             <MenuLink href="/dashboard/recycle-bin" close={() => setOpenSettings(false)}>Recycle Bin</MenuLink>
-            <button type="button" onClick={() => void handleCreateAccount()} disabled={saving} className="btn btn-secondary btn-sm mt-3 w-full">Create New Account</button>
+            {!showCreateAccount && <button type="button" onClick={openCreateAccountForm} disabled={saving} className="btn btn-secondary btn-sm mt-3 w-full">Create New Account</button>}
+            {showCreateAccount && <form onSubmit={(event) => void handleCreateAccount(event)} className="mt-3 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] p-3">
+              <div className="text-sm font-semibold">Create New Account</div>
+              <label htmlFor="topnav-account-name" className="field-label mt-3">Account name</label>
+              <input
+                ref={accountNameRef}
+                id="topnav-account-name"
+                value={newAccountName}
+                onChange={(event) => setNewAccountName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    setShowCreateAccount(false);
+                    setNewAccountName("");
+                    setError(null);
+                  }
+                }}
+                disabled={saving}
+                className="input px-2 py-2"
+                autoComplete="organization"
+              />
+              <div className="mt-3 flex gap-2">
+                <button type="button" onClick={() => { setShowCreateAccount(false); setNewAccountName(""); setError(null); }} disabled={saving} className="btn btn-secondary btn-sm flex-1">Cancel</button>
+                <button type="submit" disabled={saving || !newAccountName.trim()} className="btn btn-primary btn-sm flex-1">{saving ? "Creating..." : "Create"}</button>
+              </div>
+            </form>}
             <MenuLink href="/dashboard/settings" close={() => setOpenSettings(false)}>All Settings</MenuLink>
             <button type="button" onClick={logout} className="btn btn-secondary btn-sm mt-3 w-full">Logout</button>
           </div>}
