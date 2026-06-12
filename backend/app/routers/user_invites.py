@@ -12,6 +12,7 @@ from app.config import get_settings
 from app.deps import get_db
 from app.models import AccountMembership, AuditLog, Tenant, User, UserInvite, UserRole
 from app.services.audit_log import add_audit_log
+from app.services.account_limits import ensure_invite_allowed
 from app.services.email_sender import send_email
 from app.services.email_templates import invitation_email
 
@@ -165,6 +166,7 @@ def list_tenant_users(db: Session = Depends(get_db), user: User = Depends(admin_
 @admin_router.post("/invitations", response_model=CreateInviteOut, status_code=status.HTTP_201_CREATED)
 def create_user_invite(payload: CreateInviteIn, db: Session = Depends(get_db), user: User = Depends(admin_required)):
     _enforce_invite_rate_limit(db, user)
+    ensure_invite_allowed(db, user)
     email = payload.email.lower()
     existing_user = db.query(User).filter(func.lower(User.email) == email).first()
     if existing_user:

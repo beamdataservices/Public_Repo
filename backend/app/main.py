@@ -13,6 +13,7 @@ from app.routers.user_invites import admin_router as admin_users_router, public_
 from app.routers.password_reset import router as password_reset_router
 from app.routers.tenant_admin import router as tenant_admin_router
 from app.routers.chat import router as chat_router
+from app.routers.billing import router as billing_router
 
 
 app = FastAPI(
@@ -51,3 +52,4 @@ app.include_router(invitation_auth_router)
 app.include_router(password_reset_router)
 app.include_router(tenant_admin_router)
 app.include_router(chat_router, prefix="/api/files", tags=["chat"])
+app.include_router(billing_router)

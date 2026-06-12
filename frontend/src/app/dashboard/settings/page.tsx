@@ -64,7 +64,7 @@ export default function SettingsPage() {
       <label className="block max-w-xs text-sm"><span className="field-label">Keep deleted files for</span><select value={files?.recycle_bin_retention_days ?? 30} disabled={saving || !files} onChange={(e) => void update("/api/file-settings/me", { recycle_bin_retention_days: Number(e.target.value) }, (value) => setFiles(value as FileSettings))} className="input cursor-pointer disabled:cursor-not-allowed"><option value={30}>30 days</option><option value={60}>60 days</option><option value={90}>90 days</option></select></label>
       <Link href="/dashboard/recycle-bin" className="inline-block text-sm font-medium hover:underline" style={{ color: "var(--link)" }}>Open Recycle Bin</Link>
     </SettingsSection>
-    {(user?.role === "owner" || user?.role === "admin") && <SettingsSection title="Account Administration" description="Manage users and review AI usage for your account."><div className="flex flex-wrap gap-3"><Link href="/dashboard/admin/users" className="btn btn-secondary btn-sm">Add Users</Link><Link href="/dashboard/admin/llm-usage" className="btn btn-secondary btn-sm">AI Usage</Link></div></SettingsSection>}
+    {(user?.role === "owner" || user?.role === "admin") && <SettingsSection title="Account Administration" description="Manage users, billing, and AI usage for your account."><div className="flex flex-wrap gap-3"><Link href="/dashboard/admin/users" className="btn btn-secondary btn-sm">Add Users</Link><Link href="/dashboard/admin/llm-usage" className="btn btn-secondary btn-sm">AI Usage</Link><Link href="/dashboard/account-billing" className="btn btn-secondary btn-sm">Account Billing</Link></div></SettingsSection>}
   </div></AuthGuard>;
 }
 

@@ -26,6 +26,7 @@ from app.config import get_settings
 from app.deps import get_db
 from app.insights import _log_llm_usage
 from app.models import File as FileModel, Tenant, User
+from app.services.account_limits import ai_limit_message
 from app.agents.orchestrator import route_message
 from app.agents.specialists import build_specialist_messages, build_explain_messages, build_action_plan_messages, build_chart_narrative_messages
 
@@ -99,6 +100,34 @@ def _check_ai_enabled(db: Session, user: User) -> bool:
     return bool(tenant and tenant.ai_enabled and user.ai_enabled)
 
 
+def _single_message_stream(message: str):
+    def _stream():
+        yield _sse({"type": "token", "content": message})
+        yield _sse({"type": "done"})
+    return StreamingResponse(
+        _stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+def _limit_stream(db: Session, user: User, file: FileModel, operation: str, model: str):
+    message = ai_limit_message(db, user)
+    if not message:
+        return None
+    _log_llm_usage(
+        db=db,
+        tenant_id=user.tenant_id,
+        user_id=user.id,
+        file_id=file.id,
+        operation=operation,
+        model=model,
+        status="skipped",
+        error_message=message,
+    )
+    return _single_message_stream(message)
+
+
 # ---------------------------------------------------------------------------
 # Endpoint
 # ---------------------------------------------------------------------------
@@ -123,19 +152,15 @@ def chat_with_file(
 
     # --- AI disabled ---
     if not _check_ai_enabled(db, user):
-        def _disabled():
-            yield _sse({"type": "token", "content": "AI is currently disabled for your account. You can re-enable it in Settings (gear icon, top right)."})
-            yield _sse({"type": "done"})
-        return StreamingResponse(_disabled(), media_type="text/event-stream",
-                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+        return _single_message_stream("AI is currently disabled for your account. You can re-enable it in Settings (gear icon, top right).")
+
+    limit_response = _limit_stream(db, user, file, "chat_limit", model)
+    if limit_response:
+        return limit_response
 
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        def _no_key():
-            yield _sse({"type": "token", "content": "AI is not configured on this server. Please contact your administrator."})
-            yield _sse({"type": "done"})
-        return StreamingResponse(_no_key(), media_type="text/event-stream",
-                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+        return _single_message_stream("AI is not configured on this server. Please contact your administrator.")
 
     from openai import OpenAI
     client = OpenAI(api_key=api_key)
@@ -256,19 +281,15 @@ def explain_issue(
     model = settings.OPENAI_MODEL
 
     if not _check_ai_enabled(db, user):
-        def _disabled():
-            yield _sse({"type": "token", "content": "AI is currently disabled for your account."})
-            yield _sse({"type": "done"})
-        return StreamingResponse(_disabled(), media_type="text/event-stream",
-                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+        return _single_message_stream("AI is currently disabled for your account.")
+
+    limit_response = _limit_stream(db, user, file, "explain_issue", model)
+    if limit_response:
+        return limit_response
 
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        def _no_key():
-            yield _sse({"type": "token", "content": "AI is not configured on this server."})
-            yield _sse({"type": "done"})
-        return StreamingResponse(_no_key(), media_type="text/event-stream",
-                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+        return _single_message_stream("AI is not configured on this server.")
 
     from openai import OpenAI
     client = OpenAI(api_key=api_key)
@@ -354,19 +375,15 @@ def action_plan(
     model = settings.OPENAI_MODEL
 
     if not _check_ai_enabled(db, user):
-        def _disabled():
-            yield _sse({"type": "token", "content": "AI is currently disabled for your account."})
-            yield _sse({"type": "done"})
-        return StreamingResponse(_disabled(), media_type="text/event-stream",
-                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+        return _single_message_stream("AI is currently disabled for your account.")
+
+    limit_response = _limit_stream(db, user, file, "action_plan", model)
+    if limit_response:
+        return limit_response
 
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        def _no_key():
-            yield _sse({"type": "token", "content": "AI is not configured on this server."})
-            yield _sse({"type": "done"})
-        return StreamingResponse(_no_key(), media_type="text/event-stream",
-                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+        return _single_message_stream("AI is not configured on this server.")
 
     from openai import OpenAI
     client = OpenAI(api_key=api_key)
@@ -450,19 +467,15 @@ def chart_narrative(
     model = settings.OPENAI_MODEL
 
     if not _check_ai_enabled(db, user):
-        def _disabled():
-            yield _sse({"type": "token", "content": "AI is currently disabled for your account."})
-            yield _sse({"type": "done"})
-        return StreamingResponse(_disabled(), media_type="text/event-stream",
-                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+        return _single_message_stream("AI is currently disabled for your account.")
+
+    limit_response = _limit_stream(db, user, file, "chart_narrative", model)
+    if limit_response:
+        return limit_response
 
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        def _no_key():
-            yield _sse({"type": "token", "content": "AI is not configured on this server."})
-            yield _sse({"type": "done"})
-        return StreamingResponse(_no_key(), media_type="text/event-stream",
-                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+        return _single_message_stream("AI is not configured on this server.")
 
     from openai import OpenAI
     client = OpenAI(api_key=api_key)

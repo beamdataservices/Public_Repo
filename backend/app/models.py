@@ -41,6 +41,31 @@ class Tenant(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.sysutcdatetime())
 
 
+class AccountBilling(Base):
+    __tablename__ = "account_billing"
+
+    id = Column(UNIQUEIDENTIFIER, primary_key=True, default=uuid_str)
+    tenant_id = Column(UNIQUEIDENTIFIER, ForeignKey("tenants.id"), nullable=False, unique=True)
+
+    stripe_customer_id = Column(String(255))
+    stripe_subscription_id = Column(String(255))
+    stripe_checkout_session_id = Column(String(255))
+    stripe_price_id = Column(String(255))
+    billing_email = Column(String(255))
+    status = Column(String(50), nullable=False, server_default="none")
+    current_period_start = Column(DateTime(timezone=True))
+    current_period_end = Column(DateTime(timezone=True))
+    cancel_at_period_end = Column(Boolean, nullable=False, server_default="0")
+
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.sysutcdatetime())
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.sysutcdatetime(),
+        onupdate=func.sysutcdatetime(),
+    )
+
+
 class User(Base):
     __tablename__ = "users"
 

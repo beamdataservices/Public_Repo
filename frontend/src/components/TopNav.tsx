@@ -157,6 +157,7 @@ export default function TopNav() {
             {error && <p className="mt-2 text-xs" style={{ color: "var(--error-fg)" }}>{error}</p>}
             {(user.role === "owner" || user.role === "admin") && <MenuLink href="/dashboard/admin/users" close={() => setOpenSettings(false)}>Add Users</MenuLink>}
             {(user.role === "owner" || user.role === "admin") && <MenuLink href="/dashboard/admin/llm-usage" close={() => setOpenSettings(false)}>AI Usage</MenuLink>}
+            {(user.role === "owner" || user.role === "admin") && <MenuLink href="/dashboard/account-billing" close={() => setOpenSettings(false)}>Account Billing</MenuLink>}
             <MenuLink href="/dashboard/recycle-bin" close={() => setOpenSettings(false)}>Recycle Bin</MenuLink>
             {!showCreateAccount && <button type="button" onClick={openCreateAccountForm} disabled={saving} className="btn btn-secondary btn-sm mt-3 w-full">Create New Account</button>}
             {showCreateAccount && <form onSubmit={(event) => void handleCreateAccount(event)} className="mt-3 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] p-3">

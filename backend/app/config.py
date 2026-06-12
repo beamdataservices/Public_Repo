@@ -28,6 +28,18 @@ class Settings(BaseSettings):
     LLM_DEFAULT_INPUT_PRICE_PER_1M: Optional[float] = 0.15
     LLM_DEFAULT_OUTPUT_PRICE_PER_1M: Optional[float] = 0.60
 
+    # --- Account limits and billing ---
+    STRIPE_SECRET_KEY: Optional[str] = None
+    STRIPE_WEBHOOK_SECRET: Optional[str] = None
+    STRIPE_PREMIUM_PRICE_ID: Optional[str] = None
+    DEMO_LIFETIME_UPLOADS: int = 5
+    DEMO_LIFETIME_UPLOAD_BYTES: int = 50 * 1024 * 1024
+    DEMO_EXTRA_USERS: int = 1
+    DEMO_AI_USER_LIFETIME_USD: float = 1.00
+    PREMIUM_AI_MONTHLY_USD: float = 5.00
+    DEMO_FILE_MAX_BYTES: int = 50 * 1024 * 1024
+    PREMIUM_FILE_MAX_BYTES: int = 250 * 1024 * 1024
+
 
     # --- JWT ---
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY")

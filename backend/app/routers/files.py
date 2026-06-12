@@ -22,6 +22,7 @@ from app.config import get_settings
 from app.deps import get_db
 from app.auth import get_current_user
 from app.models import File as FileModel, Tenant, User
+from app.services.account_limits import ensure_upload_allowed
 
 router = APIRouter()
 
@@ -32,7 +33,6 @@ container_client = blob_service.get_container_client(settings.BLOB_CONTAINER)
 # ---------------------------------------------------------------------------
 # Limits
 # ---------------------------------------------------------------------------
-MAX_UPLOAD_BYTES = 50 * 1024 * 1024   # 50 MB
 MAX_ROWS_LOAD    = 500_000             # rows cap on blob reads
 
 
@@ -374,11 +374,7 @@ async def upload_file(
 
     data = await uploaded_file.read()
 
-    if len(data) > MAX_UPLOAD_BYTES:
-        raise HTTPException(
-            status_code=413,
-            detail=f"File is too large. Maximum upload size is {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.",
-        )
+    ensure_upload_allowed(db, user, len(data))
 
     file_id = str(uuid4())
     tenant = db.query(Tenant).filter(Tenant.id == user.tenant_id).first()

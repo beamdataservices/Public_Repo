@@ -14,6 +14,7 @@ from azure.storage.blob import BlobServiceClient
 from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.models import File, LLMPricing, LLMUsageEvent, Tenant, User
+from app.services.account_limits import ai_limit_message
 
 settings = get_settings()
 
@@ -169,6 +170,19 @@ def generate_ai_summary(
                     error_message="AI is disabled for this user.",
                 )
                 return None
+            limit_message = ai_limit_message(db, user)
+            if limit_message:
+                _log_llm_usage(
+                    db,
+                    tenant_id,
+                    user_id,
+                    file_id,
+                    operation,
+                    model,
+                    status="skipped",
+                    error_message=limit_message,
+                )
+                return limit_message
         except Exception:
             db.rollback()
 
