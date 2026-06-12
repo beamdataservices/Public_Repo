@@ -36,6 +36,32 @@ def _billing_configured() -> None:
         raise HTTPException(status_code=503, detail="Stripe Premium price is not configured yet. Add STRIPE_PREMIUM_PRICE_ID.")
 
 
+def _public_frontend_asset_url(path: str) -> str | None:
+    base_url = settings.FRONTEND_BASE_URL.rstrip("/")
+    if not base_url.startswith("http"):
+        return None
+    if "localhost" in base_url or "127.0.0.1" in base_url:
+        return None
+    return f"{base_url}/{path.lstrip('/')}"
+
+
+def _checkout_branding_settings() -> dict[str, Any]:
+    logo_url = settings.EMAIL_LOGO_URL or _public_frontend_asset_url("beam-full-logo-20260513.png")
+    icon_url = _public_frontend_asset_url("beam-tab-favicon-20260523-bordered.png")
+    branding: dict[str, Any] = {
+        "display_name": "BEAM Analytics",
+        "background_color": "#ffffff",
+        "button_color": "#08aeea",
+        "border_style": "rounded",
+        "font_family": "inter",
+    }
+    if logo_url:
+        branding["logo"] = {"type": "url", "url": logo_url}
+    if icon_url:
+        branding["icon"] = {"type": "url", "url": icon_url}
+    return branding
+
+
 def _dt(timestamp: Any) -> datetime | None:
     try:
         return datetime.utcfromtimestamp(int(timestamp)) if timestamp else None
@@ -156,6 +182,7 @@ def create_checkout_session(
         client_reference_id=str(user.tenant_id),
         metadata={"tenant_id": str(user.tenant_id)},
         subscription_data={"metadata": {"tenant_id": str(user.tenant_id)}},
+        branding_settings=_checkout_branding_settings(),
     )
 
     billing.stripe_checkout_session_id = session["id"]

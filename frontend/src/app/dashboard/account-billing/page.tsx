@@ -2,6 +2,7 @@
 
 import { EmbeddedCheckout, EmbeddedCheckoutProvider } from "@stripe/react-stripe-js";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -215,10 +216,44 @@ export default function AccountBillingPage() {
             </section>
 
             {clientSecret && stripePromise && (
-              <section className="rounded-lg border border-[var(--border)] bg-[color:var(--bg-panel)] p-4">
-                <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
-                  <EmbeddedCheckout />
-                </EmbeddedCheckoutProvider>
+              <section className="overflow-hidden rounded-xl border border-[var(--border)] bg-[color:var(--bg-panel)] text-[var(--text-main)]" style={{ boxShadow: "var(--shadow-2)" }}>
+                <div className="grid gap-0 lg:grid-cols-[320px_1fr]">
+                  <aside className="flex flex-col justify-between gap-6 border-b border-[var(--border)] bg-[color:var(--bg-panel-2)] p-6 lg:border-b-0 lg:border-r">
+                    <div>
+                      <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+                        <Image
+                          src="/beam-full-logo-20260513.png"
+                          alt="BEAM Consulting & Data Services"
+                          width={320}
+                          height={120}
+                          className="mx-auto h-auto w-full max-w-[240px]"
+                          priority
+                        />
+                      </div>
+                      <div className="mt-6">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">Premium Subscription</p>
+                        <h2 className="mt-2 text-2xl font-bold">BEAM Analytics Premium</h2>
+                        <div className="mt-3 flex items-end gap-2">
+                          <span className="text-4xl font-bold">$34.99</span>
+                          <span className="pb-1 text-sm text-[var(--text-muted)]">per month</span>
+                        </div>
+                        <p className="mt-4 text-sm leading-relaxed text-[var(--text-muted)]">
+                          Premium removes Demo file and user caps while keeping your same BEAM Analytics workspace, files, and account structure.
+                        </p>
+                      </div>
+                    </div>
+                    <ul className="space-y-3 text-sm text-[var(--text-muted)]">
+                      <li className="flex gap-2"><span className="font-bold text-[var(--link)]">✓</span><span>Unlimited Demo-cap-free file uploads with reasonable safety limits</span></li>
+                      <li className="flex gap-2"><span className="font-bold text-[var(--link)]">✓</span><span>Invite more users into the same account workspace</span></li>
+                      <li className="flex gap-2"><span className="font-bold text-[var(--link)]">✓</span><span>Monthly included AI usage for summaries, explanations, and chat</span></li>
+                    </ul>
+                  </aside>
+                  <div className="bg-white p-3 sm:p-5">
+                    <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
+                      <EmbeddedCheckout />
+                    </EmbeddedCheckoutProvider>
+                  </div>
+                </div>
               </section>
             )}
           </>
