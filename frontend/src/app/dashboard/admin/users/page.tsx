@@ -95,13 +95,13 @@ export default function AdminUsersPage() {
   return (
     <AuthGuard>
       <div className="space-y-6 px-6 py-6">
-        <header><h1 className="text-xl font-semibold text-[var(--text-main)]">Add Users</h1><p className="mt-1 text-sm text-[var(--text-muted)]">Manage access to your account.</p></header>
+        <header><h1 className="text-2xl font-bold tracking-tight text-[var(--text-main)]">Add Users</h1><p className="mt-1 text-sm text-[var(--text-muted)]">Manage access to your account.</p></header>
         {!isAdmin && <Message>Admin privileges are required to manage users.</Message>}
         {error && <Message>{error}</Message>}
 
         {isAdmin && <section className="rounded-lg border border-[var(--border)] bg-[color:var(--bg-panel)] p-4">
           <form onSubmit={createInvite} className="flex flex-wrap items-end gap-3">
-            <label className="flex min-w-64 flex-1 flex-col gap-1"><span className="text-xs uppercase tracking-wide text-[var(--text-muted)]">User email</span><input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="rounded-md border border-[var(--border)] bg-[color:var(--bg-main)] px-3 py-2 text-sm" placeholder="teammate@example.com" /></label>
+            <label className="flex min-w-64 flex-1 flex-col"><span className="field-label">User email</span><input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="input" placeholder="teammate@example.com" /></label>
             <Button type="submit" disabled={busy}>{busy ? "Working..." : "Send invite"}</Button>
           </form>
           {createdInvite && <div className="mt-4 rounded-[var(--radius-sm)] border p-3 text-xs" style={{ background: "var(--info-bg)", borderColor: "var(--info-border)" }}>{createdInvite.email_sent ? <p>Invitation email sent to {createdInvite.email}.</p> : <><p>Email delivery is not configured. Share this testing link securely:</p><p className="mt-2 break-all" style={{ color: "var(--link)" }}>{createdInvite.invite_url}</p></>}</div>}
@@ -113,7 +113,7 @@ export default function AdminUsersPage() {
             <Panel title="Pending Invitations">{data.pending_invites.length === 0 && <p className="text-sm text-[var(--text-muted)]">No pending invitations.</p>}{data.pending_invites.map((invite) => <div key={invite.id} className="rounded-md border border-[var(--border)] px-3 py-2 text-sm"><p>{invite.email}</p><p className="mt-1 text-xs text-[var(--text-muted)]">Expires {new Date(invite.expires_at).toLocaleString()}</p><div className="mt-2 flex gap-2"><Button disabled={busy} onClick={() => void resendInvite(invite.id)}>Resend</Button><Button disabled={busy} onClick={() => void request(`/api/admin/users/invitations/${invite.id}`, "DELETE")}>Revoke</Button></div></div>)}</Panel>
           </div>
           <Panel title="Recent Admin Activity">{auditLog.length === 0 && <p className="text-sm text-[var(--text-muted)]">No account activity recorded yet.</p>}{auditLog.map((entry) => <p key={entry.id} className="border-b border-[var(--border)] py-2 text-xs text-[var(--text-muted)]"><span className="text-[var(--text-main)]">{entry.action}</span>{entry.details.email ? ` - ${entry.details.email}` : ""}<span className="ml-2">{new Date(entry.created_at).toLocaleString()}</span></p>)}</Panel>
-          <Panel title="Deactivate Account"><p className="text-sm text-[var(--text-muted)]">This blocks all sign-ins but preserves files and records for recovery. Type <span className="text-[var(--text-main)]">{data.tenant_name}</span> to confirm.</p><div className="mt-3 flex flex-wrap gap-3"><input value={tenantConfirmation} onChange={(e) => setTenantConfirmation(e.target.value)} className="rounded-[var(--radius-sm)] border bg-[color:var(--bg-panel-2)] px-3 py-2 text-sm" style={{ borderColor: "var(--error-border)" }} /><Button disabled={busy || tenantConfirmation !== data.tenant_name} onClick={() => void deactivateTenant()}>Deactivate account</Button></div></Panel>
+          <Panel title="Deactivate Account"><p className="text-sm text-[var(--text-muted)]">This blocks all sign-ins but preserves files and records for recovery. Type <span className="text-[var(--text-main)]">{data.tenant_name}</span> to confirm.</p><div className="mt-3 flex flex-wrap gap-3"><input value={tenantConfirmation} onChange={(e) => setTenantConfirmation(e.target.value)} className="input max-w-xs" style={{ borderColor: "var(--error-border)" }} aria-label={`Type ${data.tenant_name} to confirm deactivation`} /><Button disabled={busy || tenantConfirmation !== data.tenant_name} onClick={() => void deactivateTenant()}>Deactivate account</Button></div></Panel>
         </>}
       </div>
     </AuthGuard>

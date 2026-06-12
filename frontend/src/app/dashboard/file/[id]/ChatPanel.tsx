@@ -85,7 +85,7 @@ function AgentBadge({ agents }: { agents: string[] }) {
 
 function TypingDots() {
   return (
-    <span className="inline-flex gap-1 items-center h-4">
+    <span className="inline-flex gap-1 items-center h-4" role="status" aria-label="Assistant is responding">
       {[0, 1, 2].map((i) => (
         <span
           key={i}

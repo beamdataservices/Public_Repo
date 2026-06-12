@@ -677,6 +677,8 @@ export default function HealthDiagnosticView({
         hasFetched.current = false;
       }
     };
+    // onHealthLoaded is intentionally excluded - it's a stable setter from useState
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cacheKey, fileId, sheetName, token]);
 
   if (loading) {

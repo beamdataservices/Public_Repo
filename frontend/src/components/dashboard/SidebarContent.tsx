@@ -47,8 +47,8 @@ export default function SidebarContent() {
       // 🔥 Trigger SidebarFiles reload
       setReloadFlag((prev) => prev + 1);
 
-    } catch (err: any) {
-      setError(err.message || "Upload failed");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setUploading(false);
     }
@@ -91,6 +91,7 @@ export default function SidebarContent() {
           {error && (
             <p
               className="rounded-[var(--radius-sm)] border px-2 py-1.5 text-xs"
+              role="alert"
               style={{
                 background: "var(--error-bg)",
                 borderColor: "var(--error-border)",

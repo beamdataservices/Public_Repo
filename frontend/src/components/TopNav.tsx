@@ -79,9 +79,6 @@ export default function TopNav() {
     }
   }
 
-  const headerChip =
-    "rounded-[var(--radius-sm)] border px-3 py-2 text-xs font-medium transition-colors duration-150";
-
   return (
     <header
       className="flex w-full items-center justify-between px-6 py-4"

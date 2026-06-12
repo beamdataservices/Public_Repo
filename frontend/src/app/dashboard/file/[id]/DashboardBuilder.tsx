@@ -1199,12 +1199,7 @@ export default function DashboardBuilder({
               <button
                 type="button"
                 onClick={deleteCurrentReport}
-                className="btn"
-                style={{
-                  border: "1px solid var(--error-border)",
-                  color: "var(--error-fg)",
-                  background: "transparent",
-                }}
+                className="btn btn-danger-outline"
               >
                 Delete
               </button>
@@ -1217,6 +1212,7 @@ export default function DashboardBuilder({
       {(runError || reportError) && (
         <div
           className="flex items-start justify-between gap-3 rounded-[var(--radius-sm)] border px-4 py-2 text-xs"
+          role="alert"
           style={{
             background: "var(--warning-bg)",
             borderColor: "var(--warning-border)",

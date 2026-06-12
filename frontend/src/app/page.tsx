@@ -18,8 +18,8 @@ export default function Home() {
   }, [user, loading, router]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--bg-main)] text-[var(--text-main)]">
-      Loading...
+    <div className="flex min-h-screen items-center justify-center bg-[var(--bg-main)] text-sm text-[var(--text-muted)]">
+      <span className="animate-pulse">Loading...</span>
     </div>
   );
 }

@@ -434,6 +434,19 @@ pre,
 .btn-danger:active:not(:disabled) {
   transform: translateY(0) scale(0.98);
 }
+.btn-danger-outline {
+  background: transparent;
+  border-color: var(--error-border);
+  color: var(--error-fg);
+}
+.btn-danger-outline:hover:not(:disabled) {
+  background: var(--error-bg);
+  border-color: var(--error-fg);
+  transform: translateY(-1px);
+}
+.btn-danger-outline:active:not(:disabled) {
+  transform: translateY(0);
+}
 .btn-accent-outline {
   background: transparent;
   border-color: var(--border);
