@@ -165,6 +165,10 @@ function inferChartTypeFromKey(key: string): string {
   return "bar";
 }
 
+// Session cache for AI chart narratives, keyed by chart identity + data, so
+// re-opening a narrative doesn't repeat the API call (and its cost).
+const narrativeCache = new Map<string, string>();
+
 function OverviewChartCard({
   chartKey,
   fig,
@@ -185,8 +189,21 @@ function OverviewChartCard({
   const title = formatChartName(chartKey);
   const chartType = inferChartTypeFromKey(chartKey);
 
-  function handleNarrate() {
+  function handleNarrate(forceRefresh = false) {
     if (narrateState === "loading") return;
+
+    const dataSummary = extractDataSummary(fig);
+    const cacheKey = `${fileId}::${chartKey}::${dataSummary}`;
+
+    if (!forceRefresh) {
+      const cached = narrativeCache.get(cacheKey);
+      if (cached) {
+        setNarrative(cached);
+        setNarrateState("done");
+        return;
+      }
+    }
+
     setNarrative("");
     setNarrateState("loading");
 
@@ -205,13 +222,19 @@ function OverviewChartCard({
     const xLabel = getAxisTitle(fig.layout?.xaxis);
     const yLabel = getAxisTitle(fig.layout?.yaxis);
 
+    let streamed = "";
+    let hadError = false;
+
     streamSSE(
       `${API_BASE_URL}/api/files/${fileId}/chart-narrative`,
-      { chart_title: title, chart_type: chartType, x_label: xLabel, y_label: yLabel, agg: "", data_summary: extractDataSummary(fig) },
+      { chart_title: title, chart_type: chartType, x_label: xLabel, y_label: yLabel, agg: "", data_summary: dataSummary },
       token,
-      (text) => setNarrative((prev) => prev + text),
-      (msg) => { setNarrative(msg); setNarrateState("error"); },
-      () => setNarrateState((s) => s !== "error" ? "done" : "error"),
+      (text) => { streamed += text; setNarrative((prev) => prev + text); },
+      (msg) => { hadError = true; setNarrative(msg); setNarrateState("error"); },
+      () => {
+        setNarrateState((s) => s !== "error" ? "done" : "error");
+        if (!hadError && streamed) narrativeCache.set(cacheKey, streamed);
+      },
       controller.signal,
     );
   }
@@ -228,17 +251,17 @@ function OverviewChartCard({
         <h3 className="text-sm font-semibold text-[var(--text-main)]">{title}</h3>
         <div className="flex items-center gap-2 shrink-0">
           {narrateState === "idle" && (
-            <button type="button" onClick={handleNarrate} className="btn btn-accent-outline btn-sm">
+            <button type="button" onClick={() => handleNarrate()} className="btn btn-accent-outline btn-sm">
               ✦ Narrate
             </button>
           )}
           {narrateState === "loading" && (
-            <span className="text-xs text-[var(--text-muted)] animate-pulse">Analysing…</span>
+            <span className="text-xs text-[var(--text-muted)] animate-pulse">Analyzing…</span>
           )}
           {(narrateState === "done" || narrateState === "error") && (
             <button
               type="button"
-              onClick={narrateState === "done" ? handleNarrate : handleDismiss}
+              onClick={narrateState === "done" ? () => handleNarrate(true) : handleDismiss}
               className="btn btn-ghost btn-sm"
             >
               {narrateState === "done" ? "Refresh" : "Dismiss"}

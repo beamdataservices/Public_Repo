@@ -1,5 +1,5 @@
 """
-data_health.py — DEPRECATED / dead code
+data_health.py - DEPRECATED / dead code
 
 The data health diagnostic logic lives in:
     backend/app/routers/files.py :: file_health()

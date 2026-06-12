@@ -26,6 +26,9 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Without this the browser hides Content-Disposition from fetch(), so
+    # downloads (e.g. dedupe) fall back to a generic filename.
+    expose_headers=["Content-Disposition"],
 )
 
 @app.on_event("startup")

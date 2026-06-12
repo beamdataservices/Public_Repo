@@ -246,13 +246,31 @@ def _recycle_file_out(file: FileModel, uploaded_by_email: str | None = None) -> 
     )
 
 
+# Short-lived in-process cache of parsed dataframes. Uploaded files are
+# immutable, so (file_id, sheet) is a stable key; the TTL bounds staleness if
+# a blob is ever replaced out-of-band, and the size cap bounds memory.
+_DF_CACHE: Dict[str, tuple] = {}
+_DF_CACHE_TTL_SECONDS = 300.0
+_DF_CACHE_MAX_ENTRIES = 8
+
+
 def _load_dataframe_from_blob(file: FileModel, sheet_name: Optional[str] = None) -> pd.DataFrame:
     """Download a file from Azure Blob and parse into a DataFrame.
 
+    - Caches parsed frames for a few minutes so repeated chart builds and
+      previews in a session don't re-download and re-parse the blob
     - Applies a 500k row cap to prevent OOM on huge files
     - Falls back to Latin-1 encoding if UTF-8 fails
     - Strips fully-empty rows/columns common in Excel exports
     """
+    import time as _time
+
+    cache_key = f"{file.id}::{sheet_name or '__default__'}"
+    cached = _DF_CACHE.get(cache_key)
+    if cached and _time.time() - cached[0] < _DF_CACHE_TTL_SECONDS:
+        _DF_CACHE[cache_key] = (_time.time(), cached[1])
+        return cached[1].copy()
+
     blob_client = container_client.get_blob_client(file.blob_path)
     data = blob_client.download_blob().readall()
 
@@ -287,7 +305,11 @@ def _load_dataframe_from_blob(file: FileModel, sheet_name: Optional[str] = None)
     df = df.dropna(how="all").dropna(axis=1, how="all")
     df.columns = [str(c).strip() for c in df.columns]
     df = df.replace([np.inf, -np.inf], np.nan)
-    return df
+    if len(_DF_CACHE) >= _DF_CACHE_MAX_ENTRIES:
+        oldest_key = min(_DF_CACHE.items(), key=lambda kv: kv[1][0])[0]
+        _DF_CACHE.pop(oldest_key, None)
+    _DF_CACHE[cache_key] = (_time.time(), df)
+    return df.copy()
 
 
 def _safe_float(v) -> Optional[float]:
@@ -315,14 +337,14 @@ def _cardinality_class(n_distinct: int, n_rows: int) -> str:
 
 def _score_label(score: float) -> str:
     if score >= 90:
-        return "Excellent — your data is in great shape"
+        return "Excellent - your data is in great shape"
     if score >= 80:
-        return "Good — minor issues worth reviewing"
+        return "Good - minor issues worth reviewing"
     if score >= 70:
-        return "Fair — several issues that should be addressed"
+        return "Fair - several issues that should be addressed"
     if score >= 60:
-        return "Poor — significant data problems found"
-    return "Critical — urgent data quality issues require attention"
+        return "Poor - significant data problems found"
+    return "Critical - urgent data quality issues require attention"
 
 
 def _grade(score: float) -> str:
@@ -547,7 +569,7 @@ def download_file(file_id: str, db: Session = Depends(get_db), user: User = Depe
 
 
 # ---------------------------------------------------------------------------
-# GET /insights — lightweight column profile
+# GET /insights - lightweight column profile
 # ---------------------------------------------------------------------------
 
 @router.get("/{file_id}/insights", response_model=InsightsOut)
@@ -592,7 +614,7 @@ def file_insights(
 
 
 # ---------------------------------------------------------------------------
-# POST /health — full data health diagnostic
+# POST /health - full data health diagnostic
 # ---------------------------------------------------------------------------
 
 @router.post("/{file_id}/health", response_model=HealthOut)
@@ -632,7 +654,7 @@ def file_health(
     ]
     missing_cols.sort(key=lambda x: x[1], reverse=True)
 
-    # Flag completely empty columns separately — these are a structural problem
+    # Flag completely empty columns separately - these are a structural problem
     empty_cols = [c for c, r, _ in missing_cols if r == 1.0]
     if empty_cols:
         issues.append(IssueOut(
@@ -650,7 +672,7 @@ def file_health(
             ),
         ))
 
-    # Constant columns (single value, not empty) — data quality signal
+    # Constant columns (single value, not empty) - data quality signal
     constant_cols = [
         c for c in df.columns
         if df[c].nunique(dropna=True) == 1 and null_rates[c] < 1.0
@@ -710,7 +732,7 @@ def file_health(
             key="completeness",
             severity="info",
             title="A small number of empty fields",
-            plain_message=f"Less than {overall_null_rate:.1%} of cells are empty — this is generally fine.",
+            plain_message=f"Less than {overall_null_rate:.1%} of cells are empty - this is generally fine.",
             recommendation="No action required, but worth periodically reviewing your most important fields.",
         ))
 
@@ -720,7 +742,9 @@ def file_health(
     # -----------------------------------------------------------------------
     # 2. UNIQUENESS
     # -----------------------------------------------------------------------
-    duplicate_count = int(df.duplicated(keep=False).sum())
+    # Count redundant copies (keep='first') so this matches the number of rows
+    # the dedupe tool will remove.
+    duplicate_count = int(df.duplicated().sum())
     dup_rate = duplicate_count / n_rows if n_rows > 0 else 0.0
 
     if dup_rate > 0.10:
@@ -753,7 +777,7 @@ def file_health(
             ),
         ))
 
-    # Softer multiplier (150) — a small duplicate rate shouldn't devastate the score
+    # Softer multiplier (150) - a small duplicate rate shouldn't devastate the score
     uniqueness_score = max(0.0, min(100.0, 100.0 - (dup_rate * 150.0)))
 
     # -----------------------------------------------------------------------
@@ -820,7 +844,7 @@ def file_health(
     validity_score = max(0.0, min(100.0, 100.0 - (parse_rate * 200.0)))
 
     # -----------------------------------------------------------------------
-    # 4. DISTRIBUTION — IQR outlier detection
+    # 4. DISTRIBUTION - IQR outlier detection
     # -----------------------------------------------------------------------
     outlier_details = []
     numeric_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
@@ -965,7 +989,7 @@ def file_health(
 
 
 # ---------------------------------------------------------------------------
-# POST /custom-charts — user-configured dashboard charts
+# POST /custom-charts - user-configured dashboard charts
 # ---------------------------------------------------------------------------
 
 class ChartRequest(BaseModel):

@@ -13,7 +13,7 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 // localStorage holds the last applied theme so the pre-paint script in
 // layout.tsx can set data-theme before hydration (no dark-mode flash).
-// The backend file-settings preference remains the source of truth — it is
+// The backend file-settings preference remains the source of truth - it is
 // applied via setTheme() once settings load, and re-persisted here.
 const STORAGE_KEY = "beam_theme";
 
@@ -40,7 +40,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.setItem(STORAGE_KEY, theme);
     } catch {
-      // Storage unavailable (private mode) — theme still applies for this session.
+      // Storage unavailable (private mode) - theme still applies for this session.
     }
   }, [theme]);
 

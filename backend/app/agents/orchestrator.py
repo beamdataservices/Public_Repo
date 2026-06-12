@@ -1,5 +1,5 @@
 """
-Lightweight orchestrator — classifies the user's intent and returns the list of
+Lightweight orchestrator - classifies the user's intent and returns the list of
 specialist agents to invoke.  This is a fast, temperature-0, JSON-only call so
 it adds as little latency as possible before streaming begins.
 """
@@ -19,9 +19,9 @@ Your ONLY job is to classify the user's message and return a JSON response.
 
 Available specialists:
 - health_advisor      : score, grade, quality dimensions, what issues mean
-- data_quality_coach  : how to fix problems — duplicates, missing values, data errors
-- chart_interpreter   : understanding charts, what a visualisation shows, which chart to use
-- action_planner      : what to do next, prioritised action plan, where to start
+- data_quality_coach  : how to fix problems - duplicates, missing values, data errors
+- chart_interpreter   : understanding charts, what a visualization shows, which chart to use
+- action_planner      : what to do next, prioritized action plan, where to start
 - app_guide           : how to use the app, where to find features, navigation questions
 
 Respond with ONLY valid JSON: {"agents": ["specialist_name"]}

@@ -128,7 +128,7 @@ export default function DedupePanel({
             Remove duplicate rows
           </p>
           <p className="text-xs text-[var(--text-muted)] mt-0.5">
-            {duplicateCount.toLocaleString()} duplicate{duplicateCount === 1 ? " row" : " rows"} detected —
+            {duplicateCount.toLocaleString()} duplicate{duplicateCount === 1 ? " row" : " rows"} detected -
             download a cleaned copy of your file.
           </p>
         </div>
@@ -271,7 +271,7 @@ export default function DedupePanel({
 
           {preview.duplicate_count === 0 ? (
             <p className="text-xs font-medium" style={{ color: "var(--success-fg)" }}>
-              No duplicates found with these settings — nothing to remove.
+              No duplicates found with these settings - nothing to remove.
             </p>
           ) : (
             <div className="flex flex-col sm:flex-row gap-2 pt-1">

@@ -47,14 +47,14 @@ const AGENT_LABELS: Record<string, string> = {
 
 const QUICK_PROMPTS: Record<string, string[]> = {
   overview: [
-    "Summarise this file for me",
+    "Summarize this file for me",
     "What should I look at first?",
     "What are the key patterns in this data?",
   ],
   health: [
     "Why is my score this low?",
     "What's the most important issue to fix?",
-    "Give me a prioritised action plan",
+    "Give me a prioritized action plan",
   ],
   explore: [
     "What charts would work best for this data?",
@@ -158,9 +158,15 @@ export default function ChatPanel({
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
 
-  // Column types loaded once on first open
+  // Column types loaded on first open and reloaded when the sheet changes,
+  // so the AI always has context for the data the user is looking at
   const [colTypes, setColTypes] = useState<ColType[]>([]);
   const colsLoadedRef = useRef(false);
+  const loadedSheetRef = useRef<string | null | undefined>(undefined);
+
+  // The welcome summary is seeded once per page load; clearing the chat
+  // returns to the default quick-prompt state instead of re-seeding it
+  const welcomeSeededRef = useRef(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -178,10 +184,12 @@ export default function ChatPanel({
     }
   }, [open]);
 
-  // ── Load column types once on first open ──────────────────────────────────
+  // ── Load column types on first open and when the sheet changes ────────────
   useEffect(() => {
-    if (!open || colsLoadedRef.current || !fileId || !token) return;
+    if (!open || !fileId || !token) return;
+    if (colsLoadedRef.current && loadedSheetRef.current === sheetName) return;
     colsLoadedRef.current = true;
+    loadedSheetRef.current = sheetName;
 
     const url = new URL(`${API_BASE_URL}/api/files/${fileId}/insights`);
     if (sheetName) url.searchParams.set("sheet_name", sheetName);
@@ -194,9 +202,10 @@ export default function ChatPanel({
       .catch(() => {});
   }, [open, fileId, token, sheetName]);
 
-  // ── Show initial AI summary as welcome message ────────────────────────────
+  // ── Show initial AI summary as welcome message (once per page load) ────────
   useEffect(() => {
-    if (!open || !initialSummary || messages.length > 0) return;
+    if (!open || !initialSummary || welcomeSeededRef.current || messages.length > 0) return;
+    welcomeSeededRef.current = true;
     setMessages([
       {
         id: makeId(),

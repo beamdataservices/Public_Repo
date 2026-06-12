@@ -319,7 +319,7 @@ function ActionPlanSection({
             <span style={{ color: "var(--info-fg)" }}>✦</span> AI Action Plan
           </h3>
           <p className="text-xs text-[var(--text-muted)] mt-0.5">
-            Get 3 prioritised steps to improve this dataset
+            Get 3 prioritized steps to improve this dataset
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -429,7 +429,7 @@ function ColumnTable({ columns }: { columns: ColumnDetail[] }) {
   const sorted = [...columns].sort((a, b) => b.null_rate - a.null_rate);
 
   function skewLabel(skew: number | null): string {
-    if (skew == null) return "—";
+    if (skew == null) return "-";
     if (Math.abs(skew) < 0.5) return "Balanced";
     if (skew > 1) return "Very right-skewed";
     if (skew > 0.5) return "Right-skewed";
@@ -483,13 +483,13 @@ function ColumnTable({ columns }: { columns: ColumnDetail[] }) {
                   <td className="px-3 py-2.5"><NullBadge rate={col.null_rate} /></td>
                   <td className="px-3 py-2.5 text-[var(--text-secondary)]">{col.distinct_count.toLocaleString()}</td>
                   <td className="px-3 py-2.5 text-[var(--text-secondary)]">
-                    {col.min_value != null ? col.min_value.toLocaleString() : "—"}
+                    {col.min_value != null ? col.min_value.toLocaleString() : "-"}
                   </td>
                   <td className="px-3 py-2.5 text-[var(--text-secondary)]">
-                    {col.median_value != null ? col.median_value.toLocaleString() : "—"}
+                    {col.median_value != null ? col.median_value.toLocaleString() : "-"}
                   </td>
                   <td className="px-3 py-2.5 text-[var(--text-secondary)]">
-                    {col.max_value != null ? col.max_value.toLocaleString() : "—"}
+                    {col.max_value != null ? col.max_value.toLocaleString() : "-"}
                   </td>
                   <td className="px-3 py-2.5 text-[var(--text-secondary)]">{skewLabel(col.skewness)}</td>
                   <td className="px-3 py-2.5">
@@ -498,7 +498,7 @@ function ColumnTable({ columns }: { columns: ColumnDetail[] }) {
                     ) : col.outlier_count === 0 ? (
                       <span style={{ color: "var(--success-fg)" }}>None</span>
                     ) : (
-                      <span className="text-[var(--text-muted)]">—</span>
+                      <span className="text-[var(--text-muted)]">-</span>
                     )}
                   </td>
                 </tr>
@@ -512,14 +512,14 @@ function ColumnTable({ columns }: { columns: ColumnDetail[] }) {
 }
 
 // ---------------------------------------------------------------------------
-// Main component — with session caching to avoid re-fetching on tab switch
+// Main component - with session caching to avoid re-fetching on tab switch
 // ---------------------------------------------------------------------------
 
-// Module-level cache keyed by fileId — survives tab switches within the session
+// Module-level cache keyed by fileId - survives tab switches within the session
 const healthCache: Record<string, HealthResponse> = {};
 
 // Stripped-down health summary passed up to the parent for chat context.
-// Excludes column_details (large) — column types are loaded separately by ChatPanel.
+// Excludes column_details (large) - column types are loaded separately by ChatPanel.
 export type HealthSummaryForChat = {
   score: number;
   grade: string;
@@ -574,7 +574,7 @@ export default function HealthDiagnosticView({
     setError(null);
     hasFetched.current = !!cached;
     if (cached) onHealthLoaded?.(toHealthSummary(cached));
-    // onHealthLoaded is intentionally excluded — it's a stable setter from useState
+    // onHealthLoaded is intentionally excluded - it's a stable setter from useState
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cacheKey]);
 
@@ -589,7 +589,7 @@ export default function HealthDiagnosticView({
       setError(null);
       try {
         const controller = new AbortController();
-        // 90-second timeout — surface an error instead of hanging forever
+        // 90-second timeout - surface an error instead of hanging forever
         const timeout = setTimeout(() => controller.abort(), 90_000);
 
         const res = await fetch(`${API_BASE_URL}/api/files/${fileId}/health`, {
@@ -620,7 +620,7 @@ export default function HealthDiagnosticView({
         if (!cancelled) {
           const msg =
             err instanceof Error && err.name === "AbortError"
-              ? "The analysis is taking longer than expected. Please try again — it may work on a second attempt."
+              ? "The analysis is taking longer than expected. Please try again - it may work on a second attempt."
               : err instanceof Error
               ? err.message
               : "We couldn't analyze this file right now.";

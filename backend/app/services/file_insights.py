@@ -1,5 +1,5 @@
 """
-file_insights.py — DEPRECATED / dead code
+file_insights.py - DEPRECATED / dead code
 
 The file insights logic lives in:
     backend/app/insights.py :: generate_insights()

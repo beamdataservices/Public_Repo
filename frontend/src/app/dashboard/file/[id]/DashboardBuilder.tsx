@@ -72,7 +72,7 @@ type ChartMeta = {
 const CHART_META: Record<ChartType, ChartMeta> = {
   bar: {
     label: "Bar Chart",
-    hint: "Compare totals or averages across categories — great for ranking regions, products, or teams.",
+    hint: "Compare totals or averages across categories - great for ranking regions, products, or teams.",
     needsX: true,
     needsY: false,
     showAgg: true,
@@ -82,7 +82,7 @@ const CHART_META: Record<ChartType, ChartMeta> = {
   },
   line: {
     label: "Line Chart",
-    hint: "Show how a number changes over time — ideal for tracking trends week over week or month over month.",
+    hint: "Show how a number changes over time - ideal for tracking trends week over week or month over month.",
     needsX: true,
     needsY: true,
     showAgg: true,
@@ -92,7 +92,7 @@ const CHART_META: Record<ChartType, ChartMeta> = {
   },
   scatter: {
     label: "Scatter Plot",
-    hint: "Find correlations — do higher sales reps also have higher deal sizes? Plot two numbers to find out.",
+    hint: "Find correlations - do higher sales reps also have higher deal sizes? Plot two numbers to find out.",
     needsX: true,
     needsY: true,
     showAgg: false,
@@ -102,17 +102,17 @@ const CHART_META: Record<ChartType, ChartMeta> = {
   },
   histogram: {
     label: "Distribution",
-    hint: "See the spread of a number — are most values clustered together or spread wide? Great for spotting outliers.",
+    hint: "See the spread of a number - are most values clustered together or spread wide? Great for spotting outliers.",
     needsX: true,
     needsY: false,
     showAgg: false,
     showSplitBy: false,
-    xLabel: "Number to analyse",
+    xLabel: "Number to analyze",
     yLabel: "",
   },
   box: {
     label: "Range & Outliers",
-    hint: "Show the typical range and spot extreme values — useful for comparing performance spread across teams or periods.",
+    hint: "Show the typical range and spot extreme values - useful for comparing performance spread across teams or periods.",
     needsX: false,
     needsY: true,
     showAgg: false,
@@ -122,7 +122,7 @@ const CHART_META: Record<ChartType, ChartMeta> = {
   },
   pie: {
     label: "Pie Chart",
-    hint: "Show how a total is divided — what share of revenue comes from each product or region?",
+    hint: "Show how a total is divided - what share of revenue comes from each product or region?",
     needsX: true,
     needsY: false,
     showAgg: false,
@@ -198,6 +198,10 @@ async function streamSSE(
 }
 
 type PlotTrace = Record<string, unknown>;
+
+// Session cache for AI chart narratives, keyed by chart config + data, so
+// re-narrating an unchanged chart doesn't repeat the API call (and its cost).
+const narrativeCache = new Map<string, string>();
 
 function extractDataSummary(fig: PlotFigure): string {
   if (!fig.data?.length) return "";
@@ -343,13 +347,31 @@ function ChartCard({
     setNarrative("");
   }, [renderedFig]);
 
-  function handleNarrate() {
+  function handleNarrate(forceRefresh = false) {
     if (!renderedFig || narrateState === "loading") return;
+
+    const dataSummary = extractDataSummary(renderedFig);
+    const cacheKey = [
+      fileId, cfg.chart_type, cfg.x, cfg.y, cfg.agg, cfg.color_by, dataSummary,
+    ].join("::");
+
+    if (!forceRefresh) {
+      const cached = narrativeCache.get(cacheKey);
+      if (cached) {
+        setNarrative(cached);
+        setNarrateState("done");
+        return;
+      }
+    }
+
     setNarrative("");
     setNarrateState("loading");
 
     const controller = new AbortController();
     narrateAbortRef.current = controller;
+
+    let streamed = "";
+    let hadError = false;
 
     streamSSE(
       `${API_BASE_URL}/api/files/${fileId}/chart-narrative`,
@@ -359,12 +381,15 @@ function ChartCard({
         x_label: cfg.x ? friendly(cfg.x) : "",
         y_label: cfg.y ? friendly(cfg.y) : "",
         agg: cfg.agg,
-        data_summary: extractDataSummary(renderedFig),
+        data_summary: dataSummary,
       },
       token,
-      (text) => setNarrative((prev) => prev + text),
-      (msg) => { setNarrative(msg); setNarrateState("error"); },
-      () => setNarrateState((s) => s !== "error" ? "done" : "error"),
+      (text) => { streamed += text; setNarrative((prev) => prev + text); },
+      (msg) => { hadError = true; setNarrative(msg); setNarrateState("error"); },
+      () => {
+        setNarrateState((s) => s !== "error" ? "done" : "error");
+        if (!hadError && streamed) narrativeCache.set(cacheKey, streamed);
+      },
       controller.signal,
     );
   }
@@ -479,7 +504,7 @@ function ChartCard({
           {meta.showAgg && (
             <label className="flex flex-col gap-1">
               <span className="text-xs uppercase tracking-wide font-medium text-[var(--text-muted)]">
-                Summarise by
+                Summarize by
               </span>
               <select
                 value={cfg.agg}
@@ -548,16 +573,16 @@ function ChartCard({
             {/* Narrative */}
             <div className="flex items-center justify-end gap-2">
               {narrateState === "idle" && (
-                <button type="button" onClick={handleNarrate} className="btn btn-accent-outline btn-sm">
+                <button type="button" onClick={() => handleNarrate()} className="btn btn-accent-outline btn-sm">
                   ✦ Narrate
                 </button>
               )}
               {narrateState === "loading" && (
-                <span className="text-xs text-[var(--text-muted)] animate-pulse">Analysing…</span>
+                <span className="text-xs text-[var(--text-muted)] animate-pulse">Analyzing…</span>
               )}
               {narrateState === "done" && (
                 <>
-                  <button type="button" onClick={handleNarrate} className="btn btn-ghost btn-sm">Refresh</button>
+                  <button type="button" onClick={() => handleNarrate(true)} className="btn btn-ghost btn-sm">Refresh</button>
                   <button type="button" onClick={handleDismissNarrative} className="btn btn-ghost btn-sm">Hide</button>
                 </>
               )}
@@ -598,7 +623,7 @@ function ChartCard({
         {!isRunning && !renderedFig && isReady && (
           <div className="flex flex-col items-center justify-center py-8 gap-2 text-center border border-dashed border-[var(--border)] rounded-lg">
             <p className="text-xs text-[var(--text-muted)]">
-              Your chart is configured — click{" "}
+              Your chart is configured - click{" "}
               <strong className="text-[var(--text-main)]">Build Chart</strong> to generate it.
             </p>
           </div>
@@ -898,7 +923,7 @@ export default function DashboardBuilder({
         const missing = toRun.filter((c) => !newFigs[c.id]);
         if (missing.length) {
           setRunError(
-            `${missing.length} chart${missing.length > 1 ? "s" : ""} couldn't be built — check that the selected fields are compatible with the chart type chosen.`
+            `${missing.length} chart${missing.length > 1 ? "s" : ""} couldn't be built - check that the selected fields are compatible with the chart type chosen.`
           );
         }
       } catch (err: unknown) {
@@ -1080,7 +1105,7 @@ export default function DashboardBuilder({
         <div>
           <h2 className="text-lg font-semibold text-[var(--text-main)]">Build Your Charts</h2>
           <p className="mt-0.5 text-sm text-[var(--text-muted)]">
-            Turn your data into charts — no formulas, no SQL, no waiting on your analyst.
+            Turn your data into charts - no formulas, no SQL, no waiting on your analyst.
           </p>
         </div>
 
@@ -1310,19 +1335,19 @@ export default function DashboardBuilder({
             {numCols.length > 0 && (
               <span>
                 <span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "var(--focus-ring)" }} />
-                Number fields ({numCols.length}) — use for values, Y axis, distribution charts
+                Number fields ({numCols.length}) - use for values, Y axis, distribution charts
               </span>
             )}
             {catCols.length > 0 && (
               <span>
                 <span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "var(--text-muted)" }} />
-                Category fields ({catCols.length}) — use for grouping, X axis, pie slices
+                Category fields ({catCols.length}) - use for grouping, X axis, pie slices
               </span>
             )}
             {dateCols.length > 0 && (
               <span>
                 <span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "var(--score-good)" }} />
-                Date fields ({dateCols.length}) — use on the X axis of line charts for trends
+                Date fields ({dateCols.length}) - use on the X axis of line charts for trends
               </span>
             )}
           </div>

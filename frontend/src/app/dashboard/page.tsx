@@ -13,7 +13,7 @@ export default function DashboardPage() {
           </h1>
           <p className="mt-2 text-sm text-[var(--text-muted)] leading-relaxed">
             BEAM helps you understand the health and quality of your business data
-            — without needing a data team.
+            - without needing a data team.
           </p>
         </div>
 
