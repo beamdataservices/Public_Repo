@@ -70,13 +70,17 @@ type HealthResponse = {
 // Sub-components
 // ---------------------------------------------------------------------------
 
+// Score thresholds resolve to theme tokens so light/dark both stay AA
+function scoreColor(score: number): string {
+  return score >= 90 ? "var(--score-excellent)"
+    : score >= 80 ? "var(--score-good)"
+    : score >= 70 ? "var(--score-fair)"
+    : score >= 60 ? "var(--score-poor)"
+    : "var(--score-bad)";
+}
+
 function ScoreRing({ score, grade }: { score: number; grade: string }) {
-  const color =
-    score >= 90 ? "#22c55e"
-    : score >= 80 ? "#84cc16"
-    : score >= 70 ? "#f59e0b"
-    : score >= 60 ? "#f97316"
-    : "#ef4444";
+  const color = scoreColor(score);
 
   return (
     <div className="flex flex-col items-center justify-center gap-1">
@@ -85,7 +89,7 @@ function ScoreRing({ score, grade }: { score: number; grade: string }) {
         style={{ borderColor: color }}
       >
         <div className="text-center">
-          <p className="text-3xl font-bold text-[var(--text-main)] leading-none">{score}</p>
+          <p className="text-3xl font-bold tabular-nums text-[var(--text-main)] leading-none">{score}</p>
           <p className="text-xs text-[var(--text-muted)] mt-0.5">out of 100</p>
         </div>
       </div>
@@ -98,25 +102,12 @@ function ScoreRing({ score, grade }: { score: number; grade: string }) {
 
 function SeverityBadge({ severity }: { severity: string }) {
   const map: Record<string, { cls: string; label: string }> = {
-    critical: {
-      cls: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-300 dark:border-red-800",
-      label: "Action Required",
-    },
-    warning: {
-      cls: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800",
-      label: "Warning",
-    },
-    info: {
-      cls: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-300 dark:border-blue-800",
-      label: "Note",
-    },
+    critical: { cls: "badge-error", label: "Action Required" },
+    warning: { cls: "badge-warning", label: "Warning" },
+    info: { cls: "badge-info", label: "Note" },
   };
   const { cls, label } = map[severity] ?? map.info;
-  return (
-    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${cls}`}>
-      {label}
-    </span>
-  );
+  return <span className={`badge ${cls}`}>{label}</span>;
 }
 
 async function streamSSE(
@@ -180,10 +171,10 @@ function IssueCard({
   totalRows: number;
   totalColumns: number;
 }) {
-  const borderColor =
-    issue.severity === "critical" ? "border-red-400/50"
-    : issue.severity === "warning" ? "border-amber-400/50"
-    : "border-blue-400/30";
+  const railColor =
+    issue.severity === "critical" ? "var(--error-fg)"
+    : issue.severity === "warning" ? "var(--warning-fg)"
+    : "var(--info-fg)";
 
   const [explainState, setExplainState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [explanation, setExplanation] = useState("");
@@ -215,46 +206,50 @@ function IssueCard({
   }
 
   return (
-    <div className={`rounded-xl border ${borderColor} bg-[color:var(--bg-panel)] p-4 space-y-2`}>
+    <div
+      className="card space-y-2 p-4"
+      style={{ boxShadow: `inset 3px 0 0 ${railColor}, var(--shadow-1)` }}
+    >
       <div className="flex items-start gap-3 flex-wrap">
         <SeverityBadge severity={issue.severity} />
         <p className="font-semibold text-[var(--text-main)] text-sm leading-snug flex-1">{issue.title}</p>
         {explainState === "idle" && (
-          <button
-            type="button"
-            onClick={handleExplain}
-            className="shrink-0 text-xs text-cyan-400 hover:text-cyan-300 border border-cyan-500/30 hover:border-cyan-400/60 rounded-lg px-2.5 py-1 transition-colors"
-          >
+          <button type="button" onClick={handleExplain} className="btn btn-accent-outline btn-sm shrink-0">
             ✦ Explain this
           </button>
         )}
         {(explainState === "done" || explainState === "error") && (
-          <button
-            type="button"
-            onClick={handleDismiss}
-            className="shrink-0 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
-          >
+          <button type="button" onClick={handleDismiss} className="btn btn-ghost btn-sm shrink-0">
             Hide
           </button>
         )}
       </div>
       <p className="text-sm text-[var(--text-muted)] leading-relaxed">{issue.plain_message}</p>
-      <div className="rounded-lg bg-[color:var(--bg-main)] border border-[var(--border)] px-3 py-2">
+      <div className="rounded-[var(--radius-sm)] bg-[color:var(--bg-panel-2)] border border-[var(--border-subtle)] px-3 py-2">
         <p className="text-xs font-semibold text-[var(--text-main)] mb-0.5">Next step</p>
         <p className="text-xs text-[var(--text-muted)] leading-relaxed">{issue.recommendation}</p>
       </div>
 
       {explainState !== "idle" && (
-        <div className={`rounded-lg border px-3 py-2.5 text-sm leading-relaxed ${
-          explainState === "error"
-            ? "border-red-500/30 bg-red-950/20 text-red-300"
-            : "border-cyan-500/20 bg-cyan-950/20 text-[var(--text-main)]"
-        }`}>
-          <p className="text-xs font-semibold text-cyan-400 mb-1">✦ AI Explanation</p>
+        <div
+          className="rounded-[var(--radius-sm)] border px-3 py-2.5 text-sm leading-relaxed"
+          style={
+            explainState === "error"
+              ? { background: "var(--error-bg)", borderColor: "var(--error-border)", color: "var(--error-fg)" }
+              : { background: "var(--info-bg)", borderColor: "var(--info-border)", color: "var(--text-main)" }
+          }
+        >
+          <p className="mb-1 text-xs font-semibold" style={{ color: "var(--info-fg)" }}>
+            ✦ AI Explanation
+          </p>
           {explainState === "loading" && !explanation && (
             <span className="inline-flex gap-1 items-center h-4">
               {[0, 1, 2].map((i) => (
-                <span key={i} className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                <span
+                  key={i}
+                  className="w-1.5 h-1.5 rounded-full animate-bounce"
+                  style={{ animationDelay: `${i * 0.15}s`, background: "var(--info-fg)" }}
+                />
               ))}
             </span>
           )}
@@ -317,21 +312,19 @@ function ActionPlanSection({
   }
 
   return (
-    <div className="rounded-xl border border-cyan-500/20 bg-[color:var(--bg-panel)] p-5 space-y-3">
+    <div className="card space-y-3 p-5" style={{ borderColor: "var(--info-border)" }}>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-[var(--text-main)]">✦ AI Action Plan</h3>
+          <h3 className="text-sm font-semibold text-[var(--text-main)]">
+            <span style={{ color: "var(--info-fg)" }}>✦</span> AI Action Plan
+          </h3>
           <p className="text-xs text-[var(--text-muted)] mt-0.5">
             Get 3 prioritised steps to improve this dataset
           </p>
         </div>
         <div className="flex items-center gap-2">
           {state === "done" && (
-            <button
-              type="button"
-              onClick={handleReset}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
-            >
+            <button type="button" onClick={handleReset} className="btn btn-ghost btn-sm">
               Clear
             </button>
           )}
@@ -339,7 +332,7 @@ function ActionPlanSection({
             type="button"
             onClick={state !== "loading" ? handleGenerate : undefined}
             disabled={state === "loading"}
-            className="shrink-0 rounded-lg bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-white text-xs font-semibold px-4 py-2 transition-colors"
+            className="btn btn-primary btn-sm shrink-0"
           >
             {state === "loading" ? "Generating…" : state === "done" ? "Regenerate" : "Generate"}
           </button>
@@ -347,15 +340,22 @@ function ActionPlanSection({
       </div>
 
       {state !== "idle" && (
-        <div className={`rounded-lg border px-4 py-3 text-sm leading-relaxed ${
-          state === "error"
-            ? "border-red-500/30 bg-red-950/10 text-red-300"
-            : "border-[var(--border)] bg-[color:var(--bg-main)] text-[var(--text-main)]"
-        }`}>
+        <div
+          className="rounded-[var(--radius-sm)] border px-4 py-3 text-sm leading-relaxed"
+          style={
+            state === "error"
+              ? { background: "var(--error-bg)", borderColor: "var(--error-border)", color: "var(--error-fg)" }
+              : { background: "var(--bg-panel-2)", borderColor: "var(--border-subtle)", color: "var(--text-main)" }
+          }
+        >
           {state === "loading" && !plan && (
             <span className="inline-flex gap-1 items-center h-4">
               {[0, 1, 2].map((i) => (
-                <span key={i} className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                <span
+                  key={i}
+                  className="w-1.5 h-1.5 rounded-full animate-bounce"
+                  style={{ animationDelay: `${i * 0.15}s`, background: "var(--info-fg)" }}
+                />
               ))}
             </span>
           )}
@@ -367,19 +367,15 @@ function ActionPlanSection({
 }
 
 function CategoryBar({ label, score, explanation }: { label: string; score: number; explanation?: string }) {
-  const color =
-    score >= 90 ? "#22c55e"
-    : score >= 75 ? "#84cc16"
-    : score >= 60 ? "#f59e0b"
-    : "#ef4444";
+  const color = scoreColor(score);
 
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-xs">
         <span className="text-[var(--text-main)] font-medium">{label}</span>
-        <span className="text-[var(--text-muted)]">{score.toFixed(0)}/100</span>
+        <span className="text-[var(--text-muted)] tabular-nums">{score.toFixed(0)}/100</span>
       </div>
-      <div className="h-2 w-full rounded-full bg-[color:var(--bg-main)] overflow-hidden">
+      <div className="h-2 w-full rounded-full bg-[color:var(--bg-panel-2)] overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-700"
           style={{ width: `${score}%`, backgroundColor: color }}
@@ -398,26 +394,32 @@ function friendlyName(col: string) {
 
 function NullBadge({ rate }: { rate: number }) {
   if (rate === 0)
-    return <span className="text-emerald-500 text-xs font-medium">Complete</span>;
+    return (
+      <span className="text-xs font-medium" style={{ color: "var(--success-fg)" }}>
+        Complete
+      </span>
+    );
   const pct = (rate * 100).toFixed(1);
-  const color = rate > 0.2 ? "text-red-400" : rate > 0.05 ? "text-amber-400" : "text-yellow-400";
-  return <span className={`text-xs font-medium ${color}`}>{pct}% empty</span>;
+  const color =
+    rate > 0.2 ? "var(--error-fg)" : rate > 0.05 ? "var(--warning-fg)" : "var(--score-fair)";
+  return (
+    <span className="text-xs font-medium tabular-nums" style={{ color }}>
+      {pct}% empty
+    </span>
+  );
 }
 
 function CardinalityBadge({ cls }: { cls: string }) {
+  // Semantic mapping: unique IDs and constants are noteworthy; the rest are neutral-to-warning
   const map: Record<string, string> = {
-    constant: "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300",
-    binary: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
-    low: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300",
-    medium: "bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-400",
-    high: "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
-    unique: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300",
+    constant: "badge-neutral",
+    binary: "badge-info",
+    low: "badge-success",
+    medium: "badge-neutral",
+    high: "badge-warning",
+    unique: "badge-error",
   };
-  return (
-    <span className={`rounded px-1.5 py-0.5 text-xs font-medium capitalize ${map[cls] ?? map.medium}`}>
-      {cls}
-    </span>
-  );
+  return <span className={`badge capitalize ${map[cls] ?? "badge-neutral"}`}>{cls}</span>;
 }
 
 function ColumnTable({ columns }: { columns: ColumnDetail[] }) {
@@ -436,60 +438,65 @@ function ColumnTable({ columns }: { columns: ColumnDetail[] }) {
   }
 
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[color:var(--bg-panel)]">
+    <div className="card overflow-hidden">
       <button
-        className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-[var(--text-main)]"
+        className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-[var(--text-main)] transition-colors duration-150 hover:bg-[color:var(--bg-panel-2)]"
         onClick={() => setOpen((o) => !o)}
         type="button"
+        aria-expanded={open}
       >
         <span>Field-by-Field Breakdown ({columns.length} fields)</span>
         <span className="text-[var(--text-muted)] text-xs">{open ? "▲ Hide" : "▼ Show"}</span>
       </button>
 
       {open && (
-        <div className="overflow-x-auto border-t border-[var(--border)]">
-          <table className="w-full text-xs">
+        <div className="overflow-x-auto border-t border-[var(--border-subtle)]">
+          <table className="w-full text-xs tabular-nums">
             <thead>
-              <tr className="border-b border-[var(--border)] text-[var(--text-muted)] bg-[color:var(--bg-main)]">
-                <th className="px-3 py-2 text-left font-medium">Field</th>
-                <th className="px-3 py-2 text-left font-medium">Type</th>
-                <th className="px-3 py-2 text-left font-medium">Values</th>
-                <th className="px-3 py-2 text-left font-medium">Completeness</th>
-                <th className="px-3 py-2 text-left font-medium">Unique Count</th>
-                <th className="px-3 py-2 text-left font-medium">Min</th>
-                <th className="px-3 py-2 text-left font-medium">Median</th>
-                <th className="px-3 py-2 text-left font-medium">Max</th>
-                <th className="px-3 py-2 text-left font-medium">Distribution Shape</th>
-                <th className="px-3 py-2 text-left font-medium">Unusual Values</th>
+              <tr className="border-b border-[var(--border)] bg-[color:var(--bg-panel-2)]">
+                {[
+                  "Field", "Type", "Values", "Completeness", "Unique Count",
+                  "Min", "Median", "Max", "Distribution Shape", "Unusual Values",
+                ].map((h) => (
+                  <th
+                    key={h}
+                    className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]"
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {sorted.map((col) => (
-                <tr key={col.name} className="border-b border-[var(--border)] hover:bg-[color:var(--bg-main)]">
-                  <td className="px-3 py-2 font-medium text-[var(--text-main)] max-w-[140px] truncate" title={col.name}>
+                <tr
+                  key={col.name}
+                  className="border-b border-[var(--border-subtle)] transition-colors duration-150 hover:bg-[color:var(--bg-panel-2)]"
+                >
+                  <td className="px-3 py-2.5 font-medium text-[var(--text-main)] max-w-[140px] truncate" title={col.name}>
                     {friendlyName(col.name)}
                   </td>
-                  <td className="px-3 py-2 capitalize text-[var(--text-muted)]">{col.inferred_type}</td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2.5 capitalize text-[var(--text-secondary)]">{col.inferred_type}</td>
+                  <td className="px-3 py-2.5">
                     <CardinalityBadge cls={col.cardinality_class} />
                   </td>
-                  <td className="px-3 py-2"><NullBadge rate={col.null_rate} /></td>
-                  <td className="px-3 py-2 text-[var(--text-muted)]">{col.distinct_count.toLocaleString()}</td>
-                  <td className="px-3 py-2 text-[var(--text-muted)]">
+                  <td className="px-3 py-2.5"><NullBadge rate={col.null_rate} /></td>
+                  <td className="px-3 py-2.5 text-[var(--text-secondary)]">{col.distinct_count.toLocaleString()}</td>
+                  <td className="px-3 py-2.5 text-[var(--text-secondary)]">
                     {col.min_value != null ? col.min_value.toLocaleString() : "—"}
                   </td>
-                  <td className="px-3 py-2 text-[var(--text-muted)]">
+                  <td className="px-3 py-2.5 text-[var(--text-secondary)]">
                     {col.median_value != null ? col.median_value.toLocaleString() : "—"}
                   </td>
-                  <td className="px-3 py-2 text-[var(--text-muted)]">
+                  <td className="px-3 py-2.5 text-[var(--text-secondary)]">
                     {col.max_value != null ? col.max_value.toLocaleString() : "—"}
                   </td>
-                  <td className="px-3 py-2 text-[var(--text-muted)]">{skewLabel(col.skewness)}</td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2.5 text-[var(--text-secondary)]">{skewLabel(col.skewness)}</td>
+                  <td className="px-3 py-2.5">
                     {col.outlier_count != null && col.outlier_count > 0 ? (
-                      <span className="text-amber-400">{col.outlier_count.toLocaleString()}</span>
+                      <span style={{ color: "var(--warning-fg)" }}>{col.outlier_count.toLocaleString()}</span>
                     ) : col.outlier_count === 0 ? (
-                      <span className="text-emerald-500">None</span>
+                      <span style={{ color: "var(--success-fg)" }}>None</span>
                     ) : (
                       <span className="text-[var(--text-muted)]">—</span>
                     )}
@@ -646,9 +653,9 @@ export default function HealthDiagnosticView({
             Checking for missing values, duplicates, formatting issues, and unusual values.
             This can take 15–30 seconds depending on file size.
           </p>
-          <div className="w-48 h-1 bg-[color:var(--bg-main)] rounded-full overflow-hidden mx-auto">
-            <div className="h-full bg-cyan-500 rounded-full animate-[loading_2s_ease-in-out_infinite]"
-                 style={{ width: "60%", animation: "pulse 2s cubic-bezier(0.4,0,0.6,1) infinite" }} />
+          <div className="w-48 h-1 bg-[color:var(--bg-panel-2)] rounded-full overflow-hidden mx-auto">
+            <div className="h-full rounded-full"
+                 style={{ width: "60%", background: "var(--focus-ring)", animation: "pulse 2s cubic-bezier(0.4,0,0.6,1) infinite" }} />
           </div>
         </div>
       </div>
@@ -657,9 +664,15 @@ export default function HealthDiagnosticView({
 
   if (error) {
     return (
-      <div className="rounded-xl border border-red-500/40 bg-red-950/20 p-5 space-y-2">
-        <p className="font-semibold text-red-300">Could not run health check</p>
-        <p className="text-sm text-red-400">{error}</p>
+      <div
+        className="rounded-[var(--radius-md)] border p-5 space-y-2"
+        style={{ background: "var(--error-bg)", borderColor: "var(--error-border)" }}
+        role="alert"
+      >
+        <p className="font-semibold" style={{ color: "var(--error-fg)" }}>
+          Could not run health check
+        </p>
+        <p className="text-sm" style={{ color: "var(--error-fg)" }}>{error}</p>
         <button
           type="button"
           onClick={() => {
@@ -669,7 +682,8 @@ export default function HealthDiagnosticView({
             setError(null);
             setHealth(null);
           }}
-          className="mt-1 text-xs text-red-300 underline"
+          className="mt-1 text-xs underline"
+          style={{ color: "var(--error-fg)" }}
         >
           Try again
         </button>
@@ -693,7 +707,7 @@ export default function HealthDiagnosticView({
   return (
     <div className="space-y-6">
       {/* ---- Score card ---- */}
-      <div className="rounded-xl border border-[var(--border)] bg-[color:var(--bg-panel)] p-6">
+      <div className="card p-6">
         <div className="flex flex-col sm:flex-row items-center gap-6">
           <ScoreRing score={health.score} grade={health.grade} />
 
@@ -709,7 +723,7 @@ export default function HealthDiagnosticView({
                 across{" "}
                 <strong className="text-[var(--text-main)]">{health.total_columns} fields</strong>
                 {health.duplicate_count > 0 && (
-                  <span className="text-amber-400 ml-1">
+                  <span className="ml-1" style={{ color: "var(--warning-fg)" }}>
                     · {health.duplicate_count.toLocaleString()} duplicate rows found
                   </span>
                 )}
@@ -731,19 +745,19 @@ export default function HealthDiagnosticView({
 
         {/* Issue count summary */}
         {health.issues.length > 0 && (
-          <div className="mt-5 pt-4 border-t border-[var(--border)] flex flex-wrap gap-4 text-sm">
+          <div className="mt-5 pt-4 border-t border-[var(--border-subtle)] flex flex-wrap gap-4 text-sm">
             {criticalCount > 0 && (
-              <span className="text-red-400 font-medium">
+              <span className="font-medium" style={{ color: "var(--error-fg)" }}>
                 ⚠ {criticalCount} critical {criticalCount === 1 ? "issue" : "issues"}
               </span>
             )}
             {warningCount > 0 && (
-              <span className="text-amber-400 font-medium">
+              <span className="font-medium" style={{ color: "var(--warning-fg)" }}>
                 ⚡ {warningCount} {warningCount === 1 ? "warning" : "warnings"}
               </span>
             )}
             {infoCount > 0 && (
-              <span className="text-blue-400">
+              <span style={{ color: "var(--info-fg)" }}>
                 ℹ {infoCount} {infoCount === 1 ? "note" : "notes"}
               </span>
             )}
@@ -774,8 +788,13 @@ export default function HealthDiagnosticView({
           )}
         </div>
       ) : (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-6 text-center">
-          <p className="text-emerald-400 font-semibold text-lg">✓ No significant issues found</p>
+        <div
+          className="rounded-[var(--radius-md)] border p-6 text-center"
+          style={{ background: "var(--success-bg)", borderColor: "var(--success-border)" }}
+        >
+          <p className="font-semibold text-lg" style={{ color: "var(--success-fg)" }}>
+            ✓ No significant issues found
+          </p>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
             Your dataset passed all health checks. Keep up the good work!
           </p>
