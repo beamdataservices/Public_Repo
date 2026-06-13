@@ -36,32 +36,6 @@ def _billing_configured() -> None:
         raise HTTPException(status_code=503, detail="Stripe Premium price is not configured yet. Add STRIPE_PREMIUM_PRICE_ID.")
 
 
-def _public_frontend_asset_url(path: str) -> str | None:
-    base_url = settings.FRONTEND_BASE_URL.rstrip("/")
-    if not base_url.startswith("http"):
-        return None
-    if "localhost" in base_url or "127.0.0.1" in base_url:
-        return None
-    return f"{base_url}/{path.lstrip('/')}"
-
-
-def _checkout_branding_settings() -> dict[str, Any]:
-    logo_url = settings.EMAIL_LOGO_URL or _public_frontend_asset_url("beam-full-logo-20260513.png")
-    icon_url = _public_frontend_asset_url("beam-tab-favicon-20260523-bordered.png")
-    branding: dict[str, Any] = {
-        "display_name": "BEAM Analytics",
-        "background_color": "#ffffff",
-        "button_color": "#08aeea",
-        "border_style": "rounded",
-        "font_family": "inter",
-    }
-    if logo_url:
-        branding["logo"] = {"type": "url", "url": logo_url}
-    if icon_url:
-        branding["icon"] = {"type": "url", "url": icon_url}
-    return branding
-
-
 def _dt(timestamp: Any) -> datetime | None:
     try:
         return datetime.utcfromtimestamp(int(timestamp)) if timestamp else None
@@ -173,17 +147,24 @@ def create_checkout_session(
         )
         billing.stripe_customer_id = customer["id"]
 
-    session = stripe.checkout.Session.create(
-        mode="subscription",
-        ui_mode="embedded",
-        customer=billing.stripe_customer_id,
-        line_items=[{"price": settings.STRIPE_PREMIUM_PRICE_ID, "quantity": 1}],
-        return_url=f"{settings.FRONTEND_BASE_URL.rstrip('/')}/dashboard/account-billing?checkout=complete",
-        client_reference_id=str(user.tenant_id),
-        metadata={"tenant_id": str(user.tenant_id)},
-        subscription_data={"metadata": {"tenant_id": str(user.tenant_id)}},
-        branding_settings=_checkout_branding_settings(),
-    )
+    try:
+        session = stripe.checkout.Session.create(
+            mode="subscription",
+            ui_mode="embedded",
+            customer=billing.stripe_customer_id,
+            line_items=[{"price": settings.STRIPE_PREMIUM_PRICE_ID, "quantity": 1}],
+            return_url=f"{settings.FRONTEND_BASE_URL.rstrip('/')}/dashboard/account-billing?checkout=complete",
+            client_reference_id=str(user.tenant_id),
+            metadata={"tenant_id": str(user.tenant_id)},
+            subscription_data={"metadata": {"tenant_id": str(user.tenant_id)}},
+        )
+    except stripe.StripeError as ex:
+        db.rollback()
+        message = getattr(ex, "user_message", None) or str(ex)
+        raise HTTPException(status_code=502, detail=f"Stripe checkout could not be started: {message}")
+    except Exception as ex:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Checkout could not be started: {ex}")
 
     billing.stripe_checkout_session_id = session["id"]
     billing.billing_email = payload.billing_email or billing.billing_email or user.email
