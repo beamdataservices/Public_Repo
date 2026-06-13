@@ -11,8 +11,10 @@ from sqlalchemy.orm import Session
 from app.auth import CurrentAccount, admin_required, get_current_user
 from app.config import get_settings
 from app.deps import get_db
-from app.models import AccountBilling, Tenant, TenantPlan
+from app.models import AccountBilling, AccountMembership, Tenant, TenantPlan, User, UserRole
 from app.services.account_limits import get_or_create_billing, visible_limits_summary
+from app.services.email_sender import send_email
+from app.services.email_templates import premium_subscription_email
 
 
 settings = get_settings()
@@ -107,6 +109,64 @@ def _apply_subscription(db: Session, subscription: Any, billing: AccountBilling 
     return billing
 
 
+def _billing_email_recipient(db: Session, billing: AccountBilling) -> str | None:
+    if billing.billing_email:
+        return billing.billing_email
+    owner = (
+        db.query(User)
+        .join(AccountMembership, AccountMembership.user_id == User.id)
+        .filter(
+            AccountMembership.tenant_id == billing.tenant_id,
+            AccountMembership.role.in_([UserRole.owner, UserRole.admin]),
+            AccountMembership.is_active == True,
+        )
+        .order_by(AccountMembership.created_at.asc())
+        .first()
+    )
+    return owner.email if owner else None
+
+
+def _send_premium_thank_you_if_needed(db: Session, billing: AccountBilling) -> None:
+    if billing.premium_welcome_sent_at or not _is_premium_status(billing.status):
+        return
+    recipient = _billing_email_recipient(db, billing)
+    if not recipient:
+        return
+    tenant = db.query(Tenant).filter(Tenant.id == billing.tenant_id).first()
+    account_name = tenant.name if tenant else "your account"
+    account_billing_url = f"{settings.FRONTEND_BASE_URL.rstrip('/')}/dashboard/account-billing"
+    plain_text, html = premium_subscription_email(account_name, account_billing_url)
+    try:
+        if send_email(recipient, "Thank you for upgrading to BEAM Analytics Premium", plain_text, html):
+            billing.premium_welcome_sent_at = datetime.utcnow()
+    except Exception:
+        pass
+
+
+def _sync_customer_subscription(db: Session, billing: AccountBilling) -> AccountBilling:
+    _stripe_configured()
+    if not billing.stripe_customer_id:
+        return billing
+
+    subscriptions = stripe.Subscription.list(
+        customer=billing.stripe_customer_id,
+        status="all",
+        limit=10,
+    )
+    candidates = subscriptions.get("data", [])
+    candidates = sorted(
+        candidates,
+        key=lambda item: int(item.get("created") or 0),
+        reverse=True,
+    )
+    for subscription in candidates:
+        if subscription.get("status") in {"active", "trialing", "past_due", "unpaid", "canceled", "incomplete_expired", "paused"}:
+            applied = _apply_subscription(db, subscription, billing)
+            if applied:
+                return applied
+    return billing
+
+
 @router.get("/api/account/limits")
 def account_limits(db: Session = Depends(get_db), user: CurrentAccount = Depends(get_current_user)):
     return visible_limits_summary(db, user)
@@ -127,6 +187,20 @@ def account_billing(db: Session = Depends(get_db), user: CurrentAccount = Depend
         "cancel_at_period_end": bool(billing.cancel_at_period_end),
         "has_customer": bool(billing.stripe_customer_id),
         "limits": visible_limits_summary(db, user),
+    }
+
+
+@router.post("/api/billing/sync")
+def sync_account_billing(db: Session = Depends(get_db), user: CurrentAccount = Depends(admin_required)):
+    billing = get_or_create_billing(db, str(user.tenant_id), user.email)
+    billing = _sync_customer_subscription(db, billing)
+    _send_premium_thank_you_if_needed(db, billing)
+    db.commit()
+    db.refresh(billing)
+    return {
+        "subscription_status": billing.status,
+        "current_period_end": billing.current_period_end,
+        "plan": "premium" if user.tenant.plan == TenantPlan.standard else "demo",
     }
 
 
@@ -229,6 +303,22 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             if subscription_id:
                 subscription = stripe.Subscription.retrieve(subscription_id)
                 _apply_subscription(db, subscription)
+
+        if event_type in {
+            "checkout.session.completed",
+            "customer.subscription.created",
+            "customer.subscription.updated",
+            "invoice.payment_succeeded",
+        }:
+            subscription_id = data.get("subscription") or data.get("id")
+            customer_id = data.get("customer")
+            billing = None
+            if subscription_id:
+                billing = db.query(AccountBilling).filter(AccountBilling.stripe_subscription_id == subscription_id).first()
+            if not billing and customer_id:
+                billing = db.query(AccountBilling).filter(AccountBilling.stripe_customer_id == customer_id).first()
+            if billing:
+                _send_premium_thank_you_if_needed(db, billing)
 
         db.commit()
     except Exception:

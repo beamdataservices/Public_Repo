@@ -56,6 +56,7 @@ class AccountBilling(Base):
     current_period_start = Column(DateTime(timezone=True))
     current_period_end = Column(DateTime(timezone=True))
     cancel_at_period_end = Column(Boolean, nullable=False, server_default="0")
+    premium_welcome_sent_at = Column(DateTime(timezone=True))
 
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.sysutcdatetime())
     updated_at = Column(

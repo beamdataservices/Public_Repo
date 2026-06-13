@@ -30,6 +30,17 @@ export default function SelectAccountPage() {
     }
   }
 
+  if (loading || selectedAccountId || !accountSelection) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[var(--bg-main)] px-4 text-[var(--text-main)]">
+        <div className="w-full max-w-md rounded-xl border border-[var(--border)] bg-[color:var(--bg-panel)] p-8 text-center shadow-xl">
+          <h1 className="text-xl font-semibold">{selectedAccountId ? "Opening account..." : "Checking account access..."}</h1>
+          <p className="mt-2 text-sm text-[var(--text-muted)]">This should only take a moment.</p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-[var(--bg-main)] px-4 text-[var(--text-main)]">
       <div className="w-full max-w-xl rounded-xl border border-[var(--border)] bg-[color:var(--bg-panel)] p-8 shadow-xl">

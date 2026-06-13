@@ -129,6 +129,12 @@ def _ensure_feature_columns():
               )
         END
         """,
+        """
+        IF OBJECT_ID('account_billing', 'U') IS NOT NULL AND COL_LENGTH('account_billing', 'premium_welcome_sent_at') IS NULL
+        BEGIN
+            ALTER TABLE account_billing ADD premium_welcome_sent_at DATETIMEOFFSET NULL
+        END
+        """,
     ]
     try:
         with engine.begin() as conn:

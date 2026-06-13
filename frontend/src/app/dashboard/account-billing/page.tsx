@@ -90,7 +90,15 @@ export default function AccountBillingPage() {
     void loadBilling();
     if (typeof window !== "undefined" && window.location.search.includes("checkout=complete")) {
       setMessage("Thanks. Stripe is confirming your subscription, and this page will update shortly.");
-      const timer = window.setTimeout(() => void loadBilling(), 2500);
+      fetch(`${API_BASE_URL}/api/billing/sync`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${tokens.accessToken}` },
+      })
+        .catch(() => null)
+        .finally(() => {
+          void loadBilling();
+        });
+      const timer = window.setTimeout(() => void loadBilling(), 3000);
       return () => window.clearTimeout(timer);
     }
   }, [loadBilling, tokens.accessToken]);
